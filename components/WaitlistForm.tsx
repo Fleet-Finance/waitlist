@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, FormEvent } from "react";
-import { getSupabase } from "@/lib/supabaseClient";
 
 type FormState = "idle" | "loading" | "success" | "error";
 
@@ -30,20 +29,21 @@ export default function WaitlistForm() {
     setState("loading");
 
     try {
-      const { error } = await getSupabase().from("waitlist").insert([
-        {
-          email: email.trim().toLowerCase(),
-          twitter: twitter.trim() || null,
-        },
-      ]);
+      const res = await fetch("/api/join", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: email.trim(), twitter: twitter.trim() }),
+      });
 
-      if (error) {
-        if (error.code === "23505") {
+      const data = await res.json();
+
+      if (!res.ok) {
+        if (data.error === "duplicate") {
           setErrorMsg("You're already on the waitlist!");
-          setState("error");
         } else {
-          throw error;
+          setErrorMsg(data.error || "Something went wrong. Please try again.");
         }
+        setState("error");
         return;
       }
 
