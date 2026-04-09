@@ -74,13 +74,13 @@ function confirmationEmail(email: string, position: number): string {
                 <!-- Body -->
                 <tr>
                   <td align="center" style="padding-bottom:32px;">
-                    <p style="margin:0;font-size:15px;line-height:1.6;color:#f7f7f7;max-width:380px;">
+                    <p style="margin:0;font-size:15px;line-height:1.6;color:#475569;max-width:380px;">
                       Thanks for signing up, <strong style="color:#cbd5e1;">${email}</strong>.
                     </p>
-                    <p style="margin:0;font-size:15px;line-height:1.6;color:#f7f7f7;max-width:380px;">
+                    <p style="margin:0;font-size:15px;line-height:1.6;color:#475569;max-width:380px;">
                       Together, we&apos;re bringing real-world yield to DeFi and driving real-world impact. </br>
-                    </p></br>
-                    <p style="margin:0;font-size:15px;line-height:1.6;color:#f7f7f7;max-width:380px;">
+                    </p><br />
+                    <p style="margin:0;font-size:15px;line-height:1.6;color:#475569;max-width:380px;">
                       We&apos;ll reach out as soon as we launch.
                     </p>
                   </td>
@@ -160,7 +160,7 @@ export async function POST(req: NextRequest) {
     await transporter.sendMail({
       from: `Fleet <${process.env.ZOHO_EMAIL}>`,
       to: email.trim().toLowerCase(),
-      subject: "You're on the Fleet waitlist 🚀",
+      subject: "You're on the Fleet waitlist!",
       html: confirmationEmail(email.trim().toLowerCase(), position),
     });
 
