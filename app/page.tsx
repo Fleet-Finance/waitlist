@@ -1,5 +1,6 @@
 import WaitlistForm from "@/components/WaitlistForm";
 import SignupCount from "@/components/SignupCount";
+import RefLookupModal from "@/components/RefLookupModal";
 
 export default function Home() {
   return (
@@ -41,8 +42,9 @@ export default function Home() {
         </div>
 
         {/* Waitlist Form */}
-        <div className="w-full">
+        <div className="w-full flex flex-col items-center gap-3">
           <WaitlistForm />
+          <RefLookupModal />
         </div>
 
         {/* Launching Soon Label */}
