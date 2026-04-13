@@ -88,10 +88,10 @@ export default function WaitlistForm() {
         ? `${window.location.origin}${window.location.pathname}`
         : "https://fleets.fi";
     const shareUrl = userRefCode ? `${baseUrl}?ref=${userRefCode}` : baseUrl;
-    const tweetText =
-      "Just joined the @usefleets waitlist!\n" +
-      "Early access matters.\n" +
-      "Join now, start earning points from your invites, and secure your spot among the first users to test Fleets at launch.\n";
+    const tweetText ="I just joined the @usefleets waitlist! \n \n" +
+      "Early users are already stacking points and climbing the leaderboard.\n" +
+      "The earlier you join, the better your chances of getting ahead before launch.\n \n"
+      "Be one of the first to test Fleets. \n";
     const twitterIntentUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(tweetText)}&url=${encodeURIComponent(shareUrl)}`;
 
     function handleCopyRefCode() {
