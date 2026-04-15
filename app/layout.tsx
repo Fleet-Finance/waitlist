@@ -11,13 +11,13 @@ export const metadata: Metadata = {
     shortcut: "/favicon.ico",
   },
   openGraph: {
-    title: "Fleets — Real-world yield",
+    title: "Fleets — Real-world yield without leaving DeFi",
     description:
       "Real assets, real repayments, real-time transparency. Deploy capital where it matters most.",
     type: "website",
     images: [
       {
-        url: "/opengraph-image.png",
+        url: "/og-image.png",
         width: 1200,
         height: 630,
         alt: "Fleets — Real-world yield without leaving DeFi",
@@ -26,10 +26,10 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Fleets — Real-world yield",
+    title: "Fleets — Real-world yield without leaving DeFi",
     description:
       "Real assets, real repayments, real-time transparency. Deploy capital where it matters most.",
-    images: ["/opengraph-image.png"],
+    images: ["/og-image.png"],
   },
 };
 
