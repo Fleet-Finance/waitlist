@@ -56,7 +56,7 @@ export default function Home() {
         <div className="flex items-center justify-center gap-12 sm:gap-16 w-full pt-2">
           <SignupCount />
           <div className="w-px h-10 bg-white/10" />
-          <StatCard number="12.3K" label="FUSD Supply" />
+          <StatCard number="10-20%" label="Projected APY" />
         </div>
       </div>
 
