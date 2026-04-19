@@ -75,9 +75,7 @@ export default function Home() {
           className="status-bar flex items-stretch"
           style={{ borderBottom: "1px solid var(--border)", fontSize: 11.5, letterSpacing: "0.02em" }}
         >
-          <StatusCell label="Reserve" value="USYC" mono />
           <StatusCell label="Network" value="Solana" />
-          <StatusCell label="Hackathon" value="Frontier" />
           <LiveClock />
         </div>
 
