@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { getSupabase } from "@/lib/supabaseClient";
 
 function formatCount(n: number): string {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
   if (n >= 1000) return `${(n / 1000).toFixed(1)}K`;
   return String(n);
 }
@@ -15,40 +16,37 @@ export default function SignupCount() {
     async function fetchCount() {
       try {
         const { data, error } = await getSupabase().rpc("get_waitlist_count");
-        if (!error && typeof data === "number") {
-          setCount(data);
-        }
+        if (!error && typeof data === "number") setCount(data);
       } catch {
-        // silently fall back to no count
+        // silently fall back
       }
     }
     fetchCount();
   }, []);
 
   return (
-    <div className="flex flex-col items-center gap-1">
-      <span
-        className="text-4xl sm:text-5xl font-black tabular-nums min-w-[2ch] text-center"
-        style={{
-          background: "linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%)",
-          WebkitBackgroundClip: "text",
-          WebkitTextFillColor: "transparent",
-          backgroundClip: "text",
-        }}
-      >
-        {count === null ? (
-          /* skeleton pulse while loading */
-          <span
-            className="inline-block w-8 h-10 rounded-md animate-pulse"
-            style={{ background: "rgba(59,130,246,0.2)" }}
-          />
-        ) : (
-          formatCount(count)
-        )}
-      </span>
-      <span className="text-slate-500 text-[10px] font-semibold tracking-[0.15em] uppercase">
+    <div
+      className="stat-item flex flex-col gap-1.5"
+      style={{ paddingLeft: 24, borderLeft: "1px solid var(--border)" }}
+    >
+      <span style={{ fontSize: 10.5, letterSpacing: "0.12em", textTransform: "uppercase", color: "rgba(255,255,255,0.35)", fontWeight: 600 }}>
         Signups
       </span>
+
+      <span className="font-mono tabular-nums" style={{ fontSize: 30, letterSpacing: "-1.2px", fontWeight: 500, minWidth: "2ch" }}>
+        {count === null ? (
+          <span
+            className="inline-block rounded animate-pulse"
+            style={{ width: 56, height: 32, background: "rgba(59,131,246,0.15)" }}
+          />
+        ) : (
+          <>
+            {formatCount(count)}
+          </>
+        )}
+      </span>
+
+      <span style={{ fontSize: 11, color: "#00C951", fontWeight: 500 }}>▲ on waitlist</span>
     </div>
   );
 }
