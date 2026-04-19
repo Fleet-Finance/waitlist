@@ -147,7 +147,7 @@ export default function Home() {
           <div className="flex gap-5">
             <a href="#" style={{ color: "rgba(255,255,255,0.5)", textDecoration: "none" }}>Terms</a>
             <a href="#" style={{ color: "rgba(255,255,255,0.5)", textDecoration: "none" }}>Privacy</a>
-            <a href="#" style={{ color: "rgba(255,255,255,0.5)", textDecoration: "none" }}>Contact</a>
+            <a href="mailto:contact@usefleet.xyz" style={{ color: "rgba(255,255,255,0.5)", textDecoration: "none" }}>Contact</a>
           </div>
         </footer>
       </div>
