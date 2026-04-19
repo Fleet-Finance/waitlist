@@ -104,9 +104,9 @@ export default function Home() {
                   marginBottom: 28,
                 }}
               >
-                <span style={{ display: "block" }}>Real-world</span>
+                <span style={{ display: "block", color: "var(--accent)", fontStyle: "italic", letterSpacing: "-0.04em" }}>Real-world</span>
                 <span style={{ display: "block" }}>yield without</span>
-                <span style={{ display: "block", color: "var(--accent)", fontStyle: "italic", letterSpacing: "-0.04em" }}>
+                <span style={{ display: "block" }}>
                   leaving DeFi
                 </span>
               </h1>
