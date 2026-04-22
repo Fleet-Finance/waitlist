@@ -1,0 +1,1495 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fleets Protocol — How It Works</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,300;0,400;0,500;0,600;0,700;1,500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  /* Fleets brand palette */
+  --navy:#04080F;--navy-mid:#070D1A;--navy-card:#0A1220;
+  --navy-border:rgba(255,255,255,0.08);--navy-hover:rgba(255,255,255,0.06);
+  --blue:#3B83F6;--blue-light:#60A5FA;--blue-glow:rgba(59,131,246,0.12);
+  --amber:#F59E0B;--amber-light:#FCD34D;--amber-glow:rgba(245,158,11,0.10);
+  --red:#EF4444;--red-glow:rgba(239,68,68,0.10);
+  --green:#00C951;--green-glow:rgba(0,201,81,0.10);
+  --purple:#8B5CF6;--purple-glow:rgba(139,92,246,0.10);
+  --text:rgba(255,255,255,0.92);--text-2:rgba(255,255,255,0.50);--text-3:rgba(255,255,255,0.28);
+  --mono:'JetBrains Mono',monospace;
+  --sans:'Inter',sans-serif;
+  --body:'Inter',sans-serif;
+}
+body{font-family:var(--body);background:var(--navy);color:var(--text);min-height:100vh;display:flex;align-items:center;justify-content:center;}
+
+/* ── demo nav ── */
+.demo-nav{position:fixed;top:20px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:14px;background:rgba(15,31,61,0.92);border:1px solid var(--navy-border);border-radius:100px;padding:9px 18px;backdrop-filter:blur(12px);z-index:100;}
+.demo-nav span{font-family:var(--sans);font-weight:700;font-size:14px;letter-spacing:-0.3px;}
+.btn-how{font-family:var(--sans);font-size:12px;font-weight:600;background:var(--blue);color:#fff;border:none;border-radius:100px;padding:6px 16px;cursor:pointer;transition:all .2s;}
+.btn-how:hover{background:var(--blue-light);transform:translateY(-1px);}
+
+/* ── overlay ── */
+.overlay{position:fixed;inset:0;background:rgba(3,8,18,0.88);backdrop-filter:blur(10px);z-index:1000;display:flex;align-items:center;justify-content:center;padding:16px;opacity:0;pointer-events:none;transition:opacity .3s;}
+.overlay.open{opacity:1;pointer-events:all;}
+
+/* ── modal shell ── */
+.modal{width:100%;max-width:1220px;height:min(92vh,840px);background:var(--navy-mid);border:1px solid var(--navy-border);border-radius:20px;display:grid;grid-template-rows:56px 1fr 50px;overflow:hidden;box-shadow:0 40px 120px rgba(0,0,0,.7),0 0 0 1px rgba(37,99,235,.08);transform:translateY(16px) scale(.98);transition:transform .35s cubic-bezier(.22,1,.36,1);}
+.overlay.open .modal{transform:none;}
+
+/* ── header ── */
+.mh{display:flex;align-items:center;justify-content:space-between;padding:0 24px;border-bottom:1px solid var(--navy-border);background:rgba(8,16,34,.5);}
+.mh-left{display:flex;align-items:center;gap:12px;}
+.mh-left h2{font-family:var(--sans);font-size:16px;font-weight:700;letter-spacing:-.3px;}
+.mh-left p{font-size:11px;color:var(--text-3);}
+.badge{font-family:var(--mono);font-size:9px;background:var(--blue-glow);color:var(--blue-light);border:1px solid rgba(37,99,235,.2);border-radius:4px;padding:2px 6px;letter-spacing:.5px;}
+.paused-badge{font-family:var(--mono);font-size:9px;background:var(--amber-glow);color:var(--amber-light);border:1px solid rgba(245,158,11,.25);border-radius:4px;padding:2px 8px;letter-spacing:.5px;display:none;}
+.paused-badge.show{display:inline-block;}
+.mclose{width:30px;height:30px;border-radius:8px;background:transparent;border:1px solid var(--navy-border);color:var(--text-3);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;transition:all .15s;}
+.mclose:hover{background:var(--navy-hover);color:var(--text);}
+
+/* ── body grid ── */
+.mbody{display:grid;grid-template-columns:268px 1fr 292px;overflow:hidden;}
+
+/* ══════════ LEFT PANEL ══════════ */
+.lp{border-right:1px solid var(--navy-border);padding:16px;display:flex;flex-direction:column;gap:12px;overflow-y:auto;}
+.lp::-webkit-scrollbar{width:3px;}
+.lp::-webkit-scrollbar-thumb{background:var(--navy-border);}
+
+.ttabs{display:flex;gap:5px;background:rgba(0,0,0,.2);border-radius:9px;padding:3px;}
+.ttab{flex:1;padding:7px 4px;border-radius:7px;border:none;background:transparent;font-family:var(--sans);font-size:11px;font-weight:600;color:var(--text-3);cursor:pointer;transition:all .2s;letter-spacing:.1px;}
+.ttab.active.fyc{background:var(--blue-glow);color:var(--blue-light);border:1px solid rgba(37,99,235,.2);}
+.ttab.active.ffc{background:var(--amber-glow);color:var(--amber-light);border:1px solid rgba(245,158,11,.2);}
+
+/* Action sub-tabs */
+.atabs{display:flex;gap:4px;}
+.atab{flex:1;padding:5px;border-radius:6px;border:1px solid var(--navy-border);background:transparent;font-family:var(--sans);font-size:10px;font-weight:600;color:var(--text-3);cursor:pointer;transition:all .15s;text-align:center;}
+.atab.active{background:var(--navy-hover);color:var(--text);border-color:rgba(255,255,255,.12);}
+
+.field{display:flex;flex-direction:column;gap:6px;}
+.flabel{font-size:10px;font-weight:500;color:var(--text-2);letter-spacing:.3px;}
+.inp-wrap{position:relative;}
+.inp-wrap span{position:absolute;left:10px;top:50%;transform:translateY(-50%);font-family:var(--mono);font-size:13px;color:var(--text-3);}
+.inp{width:100%;background:rgba(0,0,0,.25);border:1px solid var(--navy-border);border-radius:9px;color:var(--text);font-family:var(--mono);font-size:18px;font-weight:500;padding:10px 10px 10px 24px;outline:none;transition:border-color .2s;}
+.inp:focus{border-color:var(--blue);}
+.inp.ffc:focus{border-color:var(--amber);}
+
+.pprev{background:rgba(0,0,0,.18);border:1px solid var(--navy-border);border-radius:9px;padding:10px;}
+.prow{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;}
+.plabel{font-size:10px;color:var(--text-3);}
+.pval{font-family:var(--mono);font-size:11px;color:var(--text);}
+.pval.hi{color:var(--blue-light);}
+.pval.hi.ffc{color:var(--amber-light);}
+.tbig{font-family:var(--mono);font-size:20px;font-weight:500;color:var(--blue-light);text-align:center;padding:6px 0 2px;}
+.tbig.ffc{color:var(--amber-light);}
+.tunit{font-size:10px;color:var(--text-3);text-align:center;}
+
+.btn-act{width:100%;padding:10px;border-radius:9px;border:none;font-family:var(--sans);font-size:12px;font-weight:700;cursor:pointer;transition:all .2s;letter-spacing:.2px;}
+.btn-act.buy{background:var(--blue);color:#fff;}
+.btn-act.buy:hover{background:var(--blue-light);}
+.btn-act.buy.ffc{background:var(--amber);}
+.btn-act.buy.ffc:hover{background:var(--amber-light);}
+.btn-act.sell{background:rgba(239,68,68,.15);color:var(--red);border:1px solid rgba(239,68,68,.2);}
+.btn-act.sell:hover{background:rgba(239,68,68,.25);}
+.simnote{font-size:9px;color:var(--text-3);text-align:center;line-height:1.5;}
+
+/* redeem fraction slider */
+.slider-wrap{display:flex;flex-direction:column;gap:5px;}
+.slider-row{display:flex;justify-content:space-between;align-items:center;}
+.slider-pct{font-family:var(--mono);font-size:14px;font-weight:500;color:var(--red);}
+input[type=range]{width:100%;accent-color:var(--red);cursor:pointer;}
+
+.risk-card{background:rgba(245,158,11,.05);border:1px solid rgba(245,158,11,.18);border-radius:9px;padding:10px;display:none;}
+.risk-card.show{display:block;}
+.risk-title{display:flex;align-items:center;gap:5px;font-family:var(--sans);font-size:11px;font-weight:700;color:var(--amber-light);margin-bottom:5px;}
+.risk-body{font-size:10px;color:rgba(245,158,11,.65);line-height:1.6;}
+
+/* position card */
+.pos-card{background:var(--green-glow);border:1px solid rgba(16,185,129,.2);border-radius:9px;padding:10px;display:none;}
+.pos-card.show{display:block;animation:pop .35s cubic-bezier(.22,1,.36,1);}
+@keyframes pop{from{transform:scale(.95);opacity:0;}to{transform:scale(1);opacity:1;}}
+.pos-ttl{font-family:var(--sans);font-size:10px;font-weight:700;color:var(--green);margin-bottom:6px;letter-spacing:.3px;}
+.pos-gain{font-family:var(--mono);font-size:20px;font-weight:500;color:var(--green);text-align:center;padding:4px 0;}
+.pos-gain.neg{color:var(--red);}
+.pos-row{display:flex;justify-content:space-between;margin-bottom:3px;}
+.pos-lbl{font-size:10px;color:var(--text-3);}
+.pos-val{font-family:var(--mono);font-size:10px;color:var(--text);}
+
+/* ══════════ CENTER PANEL ══════════ */
+.cp{padding:16px 20px;display:flex;flex-direction:column;gap:14px;overflow-y:auto;}
+.cp::-webkit-scrollbar{width:3px;}
+
+.sec-lbl{font-size:10px;font-weight:600;color:var(--text-3);letter-spacing:.4px;margin-bottom:6px;}
+
+.bar-wrap{height:44px;border-radius:11px;overflow:hidden;background:rgba(0,0,0,.3);border:1px solid var(--navy-border);position:relative;}
+.bar-fyc{position:absolute;left:0;top:0;bottom:0;background:linear-gradient(90deg,rgba(37,99,235,.8),rgba(59,130,246,.55));transition:width .65s cubic-bezier(.22,1,.36,1);display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:10px;color:rgba(255,255,255,.85);min-width:32px;}
+.bar-ffc{position:absolute;right:0;top:0;bottom:0;background:linear-gradient(90deg,rgba(245,158,11,.45),rgba(252,211,77,.65));transition:width .65s cubic-bezier(.22,1,.36,1);display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:10px;color:rgba(255,255,255,.85);min-width:32px;}
+.bar-loan-line{position:absolute;bottom:0;left:0;height:3px;background:linear-gradient(90deg,var(--purple),rgba(139,92,246,.5));transition:width .65s cubic-bezier(.22,1,.36,1);}
+.bar-legend{display:flex;gap:12px;margin-top:5px;}
+.bli{display:flex;align-items:center;gap:4px;font-size:9px;color:var(--text-3);}
+.bld{width:7px;height:7px;border-radius:50%;}
+.bld.fyc{background:var(--blue-light);}
+.bld.ffc{background:var(--amber);}
+.bld.loan{background:var(--purple);}
+
+.sgrid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;}
+.sc{background:rgba(0,0,0,.2);border:1px solid var(--navy-border);border-radius:9px;padding:9px 11px;}
+.slbl{font-size:9px;color:var(--text-3);letter-spacing:.3px;margin-bottom:3px;}
+.sval{font-family:var(--mono);font-size:15px;font-weight:500;color:var(--text);transition:color .3s;}
+.sval.up{color:var(--green);}
+.sval.dn{color:var(--red);}
+
+.pgrid{display:grid;grid-template-columns:1fr 1fr;gap:7px;}
+.pc{background:rgba(0,0,0,.2);border:1px solid var(--navy-border);border-radius:9px;padding:11px;text-align:center;transition:border-color .3s,background .3s;}
+.pc.fyc-c:hover,.pc.fyc-c.pulse{border-color:rgba(37,99,235,.35);background:var(--blue-glow);}
+.pc.ffc-c:hover,.pc.ffc-c.pulse{border-color:rgba(245,158,11,.35);background:var(--amber-glow);}
+.pc-lbl{font-family:var(--sans);font-size:9px;font-weight:700;letter-spacing:.5px;margin-bottom:5px;}
+.pc-lbl.fyc{color:var(--blue-light);}
+.pc-lbl.ffc{color:var(--amber-light);}
+.pc-val{font-family:var(--mono);font-size:20px;font-weight:500;color:var(--text);transition:all .4s;}
+.pc-chg{font-family:var(--mono);font-size:10px;margin-top:2px;transition:color .3s;}
+.pc-chg.pos{color:var(--green);}
+.pc-chg.neg{color:var(--red);}
+
+.ll-wrap{max-height:130px;overflow-y:auto;display:flex;flex-direction:column;gap:4px;}
+.ll-wrap::-webkit-scrollbar{width:3px;}
+.li{display:flex;align-items:center;justify-content:space-between;background:rgba(0,0,0,.18);border:1px solid var(--navy-border);border-radius:7px;padding:6px 9px;animation:sli .3s ease;}
+@keyframes sli{from{opacity:0;transform:translateX(-6px);}to{opacity:1;transform:none;}}
+.li-id{font-family:var(--mono);font-size:9px;color:var(--text-3);}
+.li-amt{font-family:var(--mono);font-size:11px;font-weight:500;}
+.li-meta{font-size:9px;color:var(--text-3);}
+.li-prog{width:52px;height:3px;background:rgba(139,92,246,.15);border-radius:2px;overflow:hidden;margin-top:3px;}
+.li-pf{height:100%;background:linear-gradient(90deg,var(--purple),rgba(139,92,246,.5));transition:width .6s;}
+.li-st{font-size:8px;font-weight:700;letter-spacing:.4px;padding:2px 5px;border-radius:4px;}
+.li-st.active{background:var(--green-glow);color:var(--green);}
+.li-st.defaulted{background:var(--red-glow);color:var(--red);}
+.li-st.recovered{background:var(--purple-glow);color:var(--purple);}
+
+/* ══════════ RIGHT PANEL ══════════ */
+.rp{border-left:1px solid var(--navy-border);display:flex;flex-direction:column;overflow:hidden;}
+.rph{padding:12px 14px;border-bottom:1px solid var(--navy-border);display:flex;align-items:center;justify-content:space-between;}
+.rph span{font-family:var(--sans);font-size:10px;font-weight:600;color:var(--text-2);letter-spacing:.3px;}
+.mbadge{font-family:var(--mono);font-size:10px;font-weight:500;background:rgba(37,99,235,.1);color:var(--blue-light);border:1px solid rgba(37,99,235,.2);border-radius:5px;padding:2px 7px;}
+.tscroll{flex:1;overflow-y:auto;padding:10px;display:flex;flex-direction:column;gap:5px;}
+.tscroll::-webkit-scrollbar{width:3px;}
+.tscroll::-webkit-scrollbar-thumb{background:var(--navy-border);border-radius:3px;}
+.te{background:rgba(0,0,0,.18);border:1px solid var(--navy-border);border-radius:9px;padding:9px 11px;animation:tein .3s cubic-bezier(.22,1,.36,1);}
+@keyframes tein{from{opacity:0;transform:translateY(-6px);}to{opacity:1;transform:none;}}
+.te-mo{font-family:var(--mono);font-size:8px;color:var(--text-3);letter-spacing:.5px;margin-bottom:4px;}
+.te-ttl{font-family:var(--sans);font-size:10px;font-weight:700;color:var(--text);margin-bottom:4px;}
+.te-rows{display:flex;flex-direction:column;gap:2px;}
+.er{display:flex;justify-content:space-between;align-items:center;}
+.erl{font-size:9px;color:var(--text-3);}
+.erv{font-family:var(--mono);font-size:9px;color:var(--text);}
+.erv.fyc{color:var(--blue-light);}
+.erv.ffc{color:var(--amber-light);}
+.erv.g{color:var(--green);}
+.erv.r{color:var(--red);}
+.erv.p{color:var(--purple);}
+.te.tl{border-left:2px solid var(--blue);}
+.te.tr{border-left:2px solid var(--green);}
+.te.td{border-left:2px solid var(--red);}
+.te.trec{border-left:2px solid var(--purple);}
+.te.tp{border-left:2px solid var(--green);}
+.te.tred{border-left:2px solid var(--amber);}
+.te.tmint{border-left:2px solid var(--blue-light);}
+
+/* ── footer ── */
+.mf{border-top:1px solid var(--navy-border);padding:0 20px;display:flex;align-items:center;gap:14px;background:rgba(5,10,20,.5);}
+.spd-grp{display:flex;align-items:center;gap:7px;margin-right:auto;}
+.spd-lbl{font-size:10px;color:var(--text-3);}
+.spd-btns{display:flex;gap:3px;}
+.spd-btn{font-family:var(--mono);font-size:9px;font-weight:500;padding:3px 9px;border-radius:5px;border:1px solid var(--navy-border);background:transparent;color:var(--text-3);cursor:pointer;transition:all .15s;}
+.spd-btn.active{background:var(--blue-glow);border-color:rgba(37,99,235,.3);color:var(--blue-light);}
+.prog-wrap{flex:1;max-width:180px;display:flex;align-items:center;gap:7px;}
+.prog-track{flex:1;height:2px;background:rgba(255,255,255,.06);border-radius:2px;overflow:hidden;}
+.prog-fill{height:100%;background:var(--blue);border-radius:2px;transition:width .4s;}
+.prog-lbl{font-family:var(--mono);font-size:9px;color:var(--text-3);white-space:nowrap;}
+.ctrl-btns{display:flex;gap:5px;}
+.cbtn{padding:6px 12px;border-radius:7px;border:1px solid var(--navy-border);background:transparent;color:var(--text-2);font-family:var(--sans);font-size:11px;font-weight:600;cursor:pointer;transition:all .15s;}
+.cbtn:hover{background:var(--navy-hover);}
+.cbtn.prim{background:var(--blue);color:#fff;border-color:transparent;}
+.cbtn.prim:hover{background:var(--blue-light);}
+
+/* tooltips */
+[data-tip]{position:relative;cursor:help;}
+[data-tip]:hover::after{content:attr(data-tip);position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);background:var(--navy-card);border:1px solid var(--navy-border);color:var(--text-2);font-size:9px;line-height:1.5;padding:5px 8px;border-radius:6px;white-space:nowrap;max-width:180px;white-space:normal;z-index:999;pointer-events:none;box-shadow:0 8px 24px rgba(0,0,0,.4);}
+
+/* APY label under price */
+.pc-apy{font-family:var(--mono);font-size:9px;color:var(--text-3);margin-top:1px;letter-spacing:.3px;}
+.pc-apy span{color:var(--green);font-weight:500;}
+.pc-apy span.lo{color:var(--amber-light);}
+
+/* bus SVG progress track */
+.bus-track{flex:1;max-width:200px;height:20px;position:relative;display:flex;align-items:center;}
+.bus-road{width:100%;height:3px;background:rgba(255,255,255,.07);border-radius:2px;overflow:visible;position:relative;}
+.bus-road-fill{height:100%;background:linear-gradient(90deg,var(--blue),var(--blue-light));border-radius:2px;transition:width .5s ease;position:absolute;top:0;left:0;}
+.bus-icon{position:absolute;top:50%;transform:translateY(-50%);transition:left .5s ease;pointer-events:none;}
+.bus-mo-lbl{font-family:var(--mono);font-size:9px;color:var(--text-3);white-space:nowrap;min-width:54px;}
+
+/* active loan label */
+.li-operator{font-size:9px;color:var(--blue-light);font-weight:600;letter-spacing:.2px;}
+
+/* loan card click-expand */
+.li{cursor:pointer;transition:border-color .2s;}
+.li:hover{border-color:rgba(37,99,235,.35);}
+.li.expanded{border-color:rgba(239,68,68,.35);background:rgba(239,68,68,.04);}
+.li-expand{display:none;margin-top:8px;padding-top:8px;border-top:1px solid var(--navy-border);}
+.li.expanded .li-expand{display:block;}
+.li-expand-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;}
+.li-expand-lbl{font-size:9px;color:var(--text-3);}
+.li-expand-val{font-family:var(--mono);font-size:9px;color:var(--text);}
+.li-expand-val.r{color:var(--red);}
+.li-expand-val.g{color:var(--green);}
+.li-expand-val.p{color:var(--purple);}
+.btn-def{width:100%;margin-top:7px;padding:5px 8px;border-radius:6px;
+  border:1px solid rgba(239,68,68,.3);background:rgba(239,68,68,.1);
+  color:var(--red);font-family:var(--sans);font-size:10px;font-weight:700;
+  cursor:pointer;transition:all .15s;letter-spacing:.2px;}
+.btn-def:hover{background:rgba(239,68,68,.2);}
+.def-confirm{display:none;background:rgba(239,68,68,.07);border:1px solid rgba(239,68,68,.25);
+  border-radius:7px;padding:8px;margin-top:5px;}
+.def-confirm.show{display:block;}
+.def-confirm p{font-size:9px;color:var(--text-2);margin-bottom:6px;line-height:1.5;}
+.def-confirm-btns{display:flex;gap:5px;}
+.def-yes{flex:1;padding:4px;border-radius:5px;border:none;background:var(--red);
+  color:#fff;font-family:var(--sans);font-size:10px;font-weight:700;cursor:pointer;}
+.def-no{flex:1;padding:4px;border-radius:5px;border:1px solid var(--navy-border);
+  background:transparent;color:var(--text-3);font-family:var(--sans);font-size:10px;cursor:pointer;}
+
+/* ll-wrap: no max-height, scrollable center panel handles it */
+.ll-wrap{overflow-y:auto;display:flex;flex-direction:column;gap:4px;max-height:200px;}
+.ll-wrap::-webkit-scrollbar{width:3px;}
+
+/* tip callout */
+.tip-box{background:rgba(37,99,235,.06);border:1px solid rgba(37,99,235,.15);
+  border-radius:9px;padding:10px 12px;position:relative;}
+.tip-box.amber{background:rgba(245,158,11,.05);border-color:rgba(245,158,11,.15);}
+.tip-hd{display:flex;align-items:center;gap:6px;margin-bottom:4px;cursor:pointer;
+  font-family:var(--sans);font-size:10px;font-weight:700;color:var(--blue-light);}
+.tip-box.amber .tip-hd{color:var(--amber-light);}
+.tip-hd svg{flex-shrink:0;}
+.tip-body{font-size:10px;color:var(--text-3);line-height:1.6;display:none;}
+.tip-body.open{display:block;}
+.tip-toggle{margin-left:auto;font-size:9px;color:var(--text-3);}
+
+/* timeline rewind highlight */
+.te{cursor:pointer;transition:border-color .2s,background .2s;}
+.te:hover{border-color:rgba(255,255,255,.12);background:rgba(255,255,255,.03);}
+.te.rewound{border-color:rgba(37,99,235,.5);background:rgba(37,99,235,.08);}
+.te.rewound .te-ttl::after{content:' ↩ REWOUND';font-size:8px;color:var(--blue-light);letter-spacing:.4px;opacity:.7;}
+.rewind-hint{font-size:8px;color:var(--text-3);text-align:center;padding:4px 0;letter-spacing:.3px;}
+
+/* animations */
+@keyframes flashR{0%{background:rgba(239,68,68,.06);}40%{background:rgba(239,68,68,.18);}100%{background:rgba(239,68,68,.06);}}
+.flash-r{animation:flashR .8s ease;}
+@keyframes glowG{0%,100%{box-shadow:none;}50%{box-shadow:0 0 18px rgba(16,185,129,.25);}}
+.glow-g{animation:glowG 1s ease;}
+@keyframes glowP{0%,100%{box-shadow:none;}50%{box-shadow:0 0 18px rgba(139,92,246,.3);}}
+.glow-p{animation:glowP .9s ease;}
+/* ── Embedded mode: fill viewport ── */
+body{display:block!important;overflow:hidden;height:100vh;position:relative;}
+.modal{width:100%!important;max-width:none!important;height:100vh!important;border-radius:0!important;border:none!important;box-shadow:none!important;transform:none!important;transition:none!important;}
+
+/* ── Guide overlay ── */
+.guide-overlay{position:absolute;inset:0;background:rgba(4,8,15,0.94);backdrop-filter:blur(10px);z-index:500;display:none;align-items:flex-start;justify-content:center;padding:24px 16px;overflow-y:auto;}
+.guide-overlay.open{display:flex;}
+.guide-panel{width:min(580px,100%);background:var(--navy-mid);border:1px solid var(--navy-border);border-radius:16px;overflow:hidden;flex-shrink:0;}
+.guide-hdr{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--navy-border);}
+.guide-title{font-size:14px;font-weight:700;color:var(--text);letter-spacing:-.3px;}
+.guide-sub{font-size:11px;color:var(--text-3);margin-top:2px;}
+.guide-body{padding:16px 20px;display:flex;flex-direction:column;gap:14px;max-height:calc(100vh - 130px);overflow-y:auto;}
+.guide-body::-webkit-scrollbar{width:3px;}
+.guide-body::-webkit-scrollbar-thumb{background:var(--navy-border);border-radius:2px;}
+.guide-sec{display:flex;flex-direction:column;gap:5px;}
+.guide-sec-ttl{font-size:10px;font-weight:700;color:var(--blue-light);letter-spacing:.5px;text-transform:uppercase;padding-bottom:6px;border-bottom:1px solid var(--navy-border);margin-bottom:2px;}
+.guide-item{font-size:11px;color:var(--text-2);line-height:1.75;padding-left:8px;}
+.guide-item strong{color:var(--text);}
+.guide-key{font-family:var(--mono);font-size:9.5px;background:rgba(255,255,255,.05);border:1px solid var(--navy-border);border-radius:4px;padding:1px 6px;color:var(--text);white-space:nowrap;}
+.guide-chip{font-family:var(--mono);font-size:9px;border-radius:4px;padding:2px 7px;font-weight:600;}
+.guide-chip.fyc{background:var(--blue-glow);color:var(--blue-light);}
+.guide-chip.ffc{background:var(--amber-glow);color:var(--amber-light);}
+
+/* ── Simulator responsive ── */
+@media(max-width:900px){
+  .mbody{grid-template-columns:220px 1fr!important;}
+  .rp{display:none!important;}
+}
+@media(max-width:640px){
+  .mbody{grid-template-columns:1fr!important;overflow-y:auto!important;}
+  .lp{border-right:none!important;border-bottom:1px solid var(--navy-border);max-height:250px;overflow-y:auto!important;}
+  .rp{display:none!important;}
+  .sgrid{grid-template-columns:1fr 1fr!important;}
+  .pgrid{grid-template-columns:1fr 1fr!important;}
+  .mh h2{font-size:13px!important;}
+  .mh p,.badge{display:none!important;}
+  .bus-track{display:none!important;}
+  .spd-grp .spd-lbl{display:none;}
+}
+@media(max-width:400px){
+  .lp{max-height:200px;}
+  .mf{gap:6px!important;padding:0 10px!important;}
+  .ctrl-btns .cbtn{font-size:10px!important;padding:5px 8px!important;}
+  .sgrid{grid-template-columns:1fr!important;}
+}
+</style>
+</head>
+<body>
+
+<!-- ═══════════════ MODAL ═══════════════ -->
+ <div class="modal">
+
+  <!-- header -->
+  <div class="mh">
+    <div class="mh-left">
+      <div>
+        <h2>Protocol Simulation</h2>
+        <p>Live simulation of FYC &amp; FFC yield generation</p>
+      </div>
+      <span class="badge">DEMO</span>
+      <span class="paused-badge" id="pausedBadge">⏸ PAUSED — EDITING</span>
+    </div>
+    <button class="mclose" onclick="closeModal()">✕</button>
+  </div>
+
+  <!-- body -->
+  <div class="mbody">
+
+   <!-- ── LEFT ── -->
+   <div class="lp">
+
+    <div class="ttabs">
+      <button class="ttab active fyc" id="tab-fyc" onclick="switchTab('fyc')">FYC Senior</button>
+      <button class="ttab ffc" id="tab-ffc" onclick="switchTab('ffc')">FFC Junior</button>
+    </div>
+
+    <!-- action sub-tabs -->
+    <div class="atabs" id="atabs">
+      <button class="atab active" id="atab-buy" onclick="switchAction('buy')">Buy / Top-Up</button>
+      <button class="atab" id="atab-sell" onclick="switchAction('sell')">Redeem</button>
+    </div>
+
+    <!-- BUY panel -->
+    <div id="panel-buy">
+      <div class="field">
+        <label class="flabel">AMOUNT (USD)</label>
+        <div class="inp-wrap">
+          <span>$</span>
+          <input type="number" class="inp" id="amtIn" value="500" min="1"
+            onfocus="pauseForEdit()" onblur="resumeAfterEdit()" oninput="updatePreview()">
+        </div>
+      </div>
+
+      <div class="pprev" id="pprev">
+        <div class="prow">
+          <span class="plabel" data-tip="Includes estimated accruing loan interest — your fair entry price">Optimistic price</span>
+          <span class="pval hi" id="prevOpt">$1.000000</span>
+        </div>
+        <div class="prow">
+          <span class="plabel" data-tip="Only confirmed collected yield and USYC gains">Conservative price</span>
+          <span class="pval" id="prevCons">$1.000000</span>
+        </div>
+        <div class="tbig" id="prevTokens">500.00</div>
+        <div class="tunit" id="prevUnit">FYC tokens you would receive</div>
+      </div>
+
+      <button class="btn-act buy" id="btnBuy" onclick="doBuy()">Buy FYC</button>
+      <p class="simnote">Simulation only — no real tokens or wallets</p>
+    </div>
+
+    <!-- SELL panel -->
+    <div id="panel-sell" style="display:none">
+      <div class="slider-wrap">
+        <div class="slider-row">
+          <span class="flabel">REDEEM AMOUNT</span>
+          <span class="slider-pct" id="redeemPct">50%</span>
+        </div>
+        <input type="range" id="redeemRange" min="1" max="100" value="50"
+          onfocus="pauseForEdit()" onblur="resumeAfterEdit()" oninput="updateRedeemPreview()">
+      </div>
+      <div class="pprev" id="redeemPrev">
+        <div class="prow">
+          <span class="plabel">Conservative price</span>
+          <span class="pval" id="rvPrice">$1.000000</span>
+        </div>
+        <div class="prow">
+          <span class="plabel">Tokens to redeem</span>
+          <span class="pval" id="rvTokens">—</span>
+        </div>
+        <div class="prow">
+          <span class="plabel">You receive</span>
+          <span class="pval hi" id="rvUsdc">—</span>
+        </div>
+      </div>
+      <button class="btn-act sell" id="btnSell" onclick="doRedeem()">Redeem</button>
+      <p class="simnote">30-day FYC lock · 90-day FFC lock (simulated)</p>
+    </div>
+
+    <!-- risk card -->
+    <div class="risk-card" id="riskCard">
+      <div class="risk-title">⚠️ FFC — First-Loss Risk</div>
+      <div class="risk-body">FFC absorbs all losses before FYC. If a borrower defaults, V_FFC decreases first. Vehicle auction recovery typically recoups 40–70%, minimising net loss. Higher risk = higher residual yield.</div>
+    </div>
+
+    <!-- position card -->
+    <div class="pos-card" id="posCard">
+      <div class="pos-ttl" id="posLbl">YOUR POSITION</div>
+      <div class="pos-gain" id="posGain">+0.00%</div>
+      <div class="pos-row"><span class="pos-lbl">Tokens</span><span class="pos-val" id="posToks">—</span></div>
+      <div class="pos-row"><span class="pos-lbl">Avg entry</span><span class="pos-val" id="posEntry">—</span></div>
+      <div class="pos-row"><span class="pos-lbl">Current value</span><span class="pos-val" id="posCurr">—</span></div>
+      <div class="pos-row"><span class="pos-lbl">Total invested</span><span class="pos-val" id="posInvest">—</span></div>
+    </div>
+   </div>
+
+   <!-- ── CENTER ── -->
+   <div class="cp">
+
+    <div>
+      <div class="sec-lbl">POOL COMPOSITION</div>
+      <div class="bar-wrap">
+        <div class="bar-fyc" id="barFyc">FYC</div>
+        <div class="bar-ffc" id="barFfc">FFC</div>
+        <div class="bar-loan-line" id="barLoan"></div>
+      </div>
+      <div class="bar-legend">
+        <div class="bli"><div class="bld fyc"></div>FYC Value</div>
+        <div class="bli"><div class="bld ffc"></div>FFC Value</div>
+        <div class="bli"><div class="bld loan"></div>Deployed Loans</div>
+      </div>
+    </div>
+
+    <div class="sgrid">
+      <div class="sc"><div class="slbl" data-tip="V_FYC + V_FFC = total pool">V_POOL</div><div class="sval" id="svPool">$2,000</div></div>
+      <div class="sc"><div class="slbl" data-tip="Sum of active loan balances">LOANS OUT</div><div class="sval" id="svLoans">$0</div></div>
+      <div class="sc"><div class="slbl" data-tip="V_FFC ÷ outstanding. Must be ≥ 0.80 for new loans">φ COVER</div><div class="sval" id="svPhi">—</div></div>
+      <div class="sc"><div class="slbl" data-tip="Deployed ÷ (V_pool × 0.80). Higher = more yield for FYC">DEPLOY</div><div class="sval" id="svDeploy">0%</div></div>
+      <div class="sc"><div class="slbl" data-tip="USYC yield attributable to FYC scaled by ELB/V_pool">BASE CAP</div><div class="sval" id="svBase">1.4%</div></div>
+      <div class="sc"><div class="slbl" data-tip="FYC max APY. Slides from base_cap → full_cap with deployment">EFF. CAP</div><div class="sval" id="svEff">1.4%</div></div>
+    </div>
+
+    <div class="pgrid">
+      <div class="pc fyc-c" id="fyc-pc">
+        <div class="pc-lbl fyc" data-tip="Senior tranche. Earns capped yield. Losses hit FFC first.">FYC PRICE</div>
+        <div class="pc-val" id="pcFyc">$1.0000</div>
+        <div class="pc-chg pos" id="chFyc">+0.00%</div>
+        <div class="pc-apy" id="apyFyc">12M APY <span>—</span></div>
+      </div>
+      <div class="pc ffc-c" id="ffc-pc">
+        <div class="pc-lbl ffc" data-tip="Junior tranche. First-loss risk. Earns higher residual yield from fleet operator loans.">FFC PRICE</div>
+        <div class="pc-val" id="pcFfc">$1.0000</div>
+        <div class="pc-chg pos" id="chFfc">+0.00%</div>
+        <div class="pc-apy" id="apyFfc">12M APY <span>—</span></div>
+      </div>
+    </div>
+
+    <div>
+      <div class="sec-lbl">FLEET OPERATOR LOANS</div>
+      <div class="ll-wrap" id="loanList">
+        <div style="font-size:10px;color:var(--text-3);text-align:center;padding:10px;">Fleet operator loans originate as the simulation progresses</div>
+      </div>
+    </div>
+
+    <!-- Tip 1: yield split -->
+    <div class="tip-box" onclick="toggleTip('tip1')">
+      <div class="tip-hd">
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="6" r="5.5" stroke="#3B82F6" stroke-width="1"/><text x="6" y="9" text-anchor="middle" fill="#3B82F6" font-size="8" font-weight="700">i</text></svg>
+        How yield is split between FYC &amp; FFC
+        <span class="tip-toggle" id="tip1-tog">▸ show</span>
+      </div>
+      <div class="tip-body" id="tip1">
+        FYC has a <strong style="color:var(--blue-light)">capped APY</strong> (the effective cap). Every month, FYC receives just enough loan interest to reach its cap — nothing more. All remaining loan interest flows to FFC. This is why FFC typically grows faster: it earns the <em>residual</em> after FYC is satisfied. When no loans are active, both tranches grow equally from USYC yield alone.
+      </div>
+    </div>
+
+    <!-- Tip 2: φ coverage -->
+    <div class="tip-box amber" onclick="toggleTip('tip2')">
+      <div class="tip-hd">
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="6" r="5.5" stroke="#F59E0B" stroke-width="1"/><text x="6" y="9" text-anchor="middle" fill="#F59E0B" font-size="8" font-weight="700">!</text></svg>
+        Understanding φ (phi) coverage ratio
+        <span class="tip-toggle" id="tip2-tog">▸ show</span>
+      </div>
+      <div class="tip-body" id="tip2">
+        φ = <strong style="color:var(--amber-light)">V_FFC ÷ outstanding loans</strong>. It must stay at or above <strong>0.80</strong> for new loans to be originated. FFC acts as the first-loss layer — for every $1 of loans deployed, at least $0.80 of FFC value must be backing it. If φ drops below 0.80 due to defaults or FFC redemptions, new loan originations are automatically blocked until V_FFC recovers.
+      </div>
+    </div>
+
+   </div>
+
+   <!-- ── RIGHT (timeline) ── -->
+   <div class="rp">
+    <div class="rph">
+      <span>LIVE TIMELINE</span>
+      <span class="mbadge" id="moBadge" style="display:none">Month 0</span>
+    </div>
+    <div class="rewind-hint">↩ Click any event to rewind simulation to that point</div>
+    <div class="tscroll" id="tl"></div>
+   </div>
+
+  </div><!-- /mbody -->
+
+  <!-- footer -->
+  <div class="mf">
+    <div class="spd-grp">
+      <span class="spd-lbl">Speed:</span>
+      <div class="spd-btns">
+        <button class="spd-btn active" id="spdSlow" onclick="setSpd(2200,this)">Slow</button>
+        <button class="spd-btn" id="spdNorm" onclick="setSpd(950,this)">Normal</button>
+        <button class="spd-btn" id="spdFast" onclick="setSpd(220,this)">Fast</button>
+      </div>
+    </div>
+    <div class="bus-track" id="busTrack">
+      <div class="bus-road">
+        <div class="bus-road-fill" id="busRoadFill" style="width:0%"></div>
+      </div>
+      <div class="bus-icon" id="busIcon" style="left:0%">
+        <svg width="22" height="14" viewBox="0 0 22 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- Bus top-down view -->
+          <rect x="1" y="1" width="20" height="12" rx="3" fill="#1A3A5C" stroke="#3B82F6" stroke-width="1.2"/>
+          <!-- windshield front -->
+          <rect x="17" y="2.5" width="3" height="9" rx="1.5" fill="#2563EB" opacity=".7"/>
+          <!-- rear window -->
+          <rect x="2" y="2.5" width="2.5" height="9" rx="1" fill="#1E3258" opacity=".8"/>
+          <!-- side windows left -->
+          <rect x="6" y="2" width="3" height="3.5" rx="1" fill="#2563EB" opacity=".5"/>
+          <rect x="10.5" y="2" width="3" height="3.5" rx="1" fill="#2563EB" opacity=".5"/>
+          <!-- side windows right -->
+          <rect x="6" y="8.5" width="3" height="3.5" rx="1" fill="#2563EB" opacity=".5"/>
+          <rect x="10.5" y="8.5" width="3" height="3.5" rx="1" fill="#2563EB" opacity=".5"/>
+          <!-- centre aisle line -->
+          <line x1="5" y1="7" x2="16" y2="7" stroke="#1E3258" stroke-width=".8" stroke-dasharray="2 2"/>
+        </svg>
+      </div>
+    </div>
+    <span class="bus-mo-lbl" id="pLbl">Month 0</span>
+    <div class="ctrl-btns">
+      <button class="cbtn" onclick="openGuide()" title="Simulator guide" style="padding:6px 10px;font-size:13px;line-height:1;">?</button>
+      <button class="cbtn" onclick="resetSim()">↺ Reset</button>
+      <button class="cbtn" id="btnPP" onclick="togglePlay()">▶ Play</button>
+    </div>
+  </div>
+
+ </div>
+
+<!-- ═══════════════ GUIDE OVERLAY ═══════════════ -->
+<div class="guide-overlay" id="guideOverlay">
+ <div class="guide-panel">
+  <div class="guide-hdr">
+   <div>
+    <div class="guide-title">Simulator Guide</div>
+    <div class="guide-sub">Everything you need to know to use this simulation</div>
+   </div>
+   <button class="mclose" onclick="closeGuide()">✕</button>
+  </div>
+  <div class="guide-body">
+   <div class="guide-sec">
+    <div class="guide-sec-ttl">⏯ Playback Controls</div>
+    <div class="guide-item"><span class="guide-key">▶ Play</span> / <span class="guide-key">⏸ Pause</span> — Start or pause month-by-month progression</div>
+    <div class="guide-item"><span class="guide-key">↺ Reset</span> — Restart from Month 0, clearing all history and positions</div>
+    <div class="guide-item"><span class="guide-key">Slow / Normal / Fast</span> — 2.2 s, 950 ms, or 220 ms per simulated month</div>
+   </div>
+   <div class="guide-sec">
+    <div class="guide-sec-ttl">💼 Buying &amp; Redeeming</div>
+    <div class="guide-item">Switch between <span class="guide-chip fyc">FYC Senior</span> and <span class="guide-chip ffc">FFC Junior</span> tranches in the left panel</div>
+    <div class="guide-item">Enter an amount and click <strong>Buy</strong> to open or top up a simulated position at the current optimistic price</div>
+    <div class="guide-item">Your <strong>Position Card</strong> shows tokens held, average entry price, and real-time P&amp;L vs current conservative price</div>
+    <div class="guide-item">Use the <strong>Redeem</strong> tab to exit any percentage of your position — proceeds use the conservative price</div>
+    <div class="guide-item">Simulated lock-ups: 30-day FYC · 90-day FFC (for context only, not enforced in simulation)</div>
+   </div>
+   <div class="guide-sec">
+    <div class="guide-sec-ttl">📈 Live Timeline (right panel)</div>
+    <div class="guide-item"><strong>Click any event card</strong> to rewind the simulation to that exact point in time</div>
+    <div class="guide-item">Rewound cards are highlighted in blue with a <span style="color:var(--blue-light)">↩ REWOUND</span> indicator — the simulation pauses so you can inspect state</div>
+    <div class="guide-item">Colour coding: <span style="color:var(--blue-light)">■</span> Loan originated &nbsp;<span style="color:var(--green)">■</span> Yield month &nbsp;<span style="color:var(--red)">■</span> Default &nbsp;<span style="color:var(--amber)">■</span> Redemption</div>
+    <div class="guide-item">The <strong>bus icon</strong> in the footer tracks progress through a 36-month loan cycle</div>
+   </div>
+   <div class="guide-sec">
+    <div class="guide-sec-ttl">📊 Key Metrics (centre panel)</div>
+    <div class="guide-item"><span class="guide-key">V_POOL</span> Total pool value — V_FYC + V_FFC</div>
+    <div class="guide-item"><span class="guide-key">LOANS OUT</span> Sum of all active fleet operator loan balances</div>
+    <div class="guide-item"><span class="guide-key">φ COVER</span> V_FFC ÷ outstanding loans — must stay ≥ 0.80 for new originations; FFC is the coverage buffer</div>
+    <div class="guide-item"><span class="guide-key">DEPLOY</span> Active loans ÷ (80% of pool) — higher deployment = more loan interest flowing to tranches</div>
+    <div class="guide-item"><span class="guide-key">BASE CAP</span> USYC T-bill yield allocated to FYC, proportional to non-deployed capital</div>
+    <div class="guide-item"><span class="guide-key">EFF. CAP</span> FYC's projected APY ceiling — rises from base cap toward 10% as deployment increases</div>
+   </div>
+   <div class="guide-sec">
+    <div class="guide-sec-ttl">⚠️ Default Waterfall</div>
+    <div class="guide-item">FFC (Junior tranche) absorbs <strong>all losses first</strong> — FYC price stays constant while FFC has buffer</div>
+    <div class="guide-item">Only if FFC is fully drained does FYC (Senior) take any write-down</div>
+    <div class="guide-item">Vehicle auction recovery (55–80%) is already netted out before the pool is affected</div>
+    <div class="guide-item">Insurance token burns can restore FYC price if a write-down occurs</div>
+    <div class="guide-item"><strong>Expand any active loan card</strong> in the centre panel and click <em>Simulate Default</em> to trigger one manually and watch the waterfall in real time</div>
+   </div>
+   <div class="guide-sec">
+    <div class="guide-sec-ttl">💡 Yield Mechanics</div>
+    <div class="guide-item">Both tranches always earn USYC T-bill yield on undeployed capital, even with no active loans</div>
+    <div class="guide-item">FYC earns loan interest up to its effective cap — all residual above the cap flows to FFC</div>
+    <div class="guide-item">The <strong>12M APY</strong> shown is a projection based on the current month's actual yield — it updates every tick</div>
+    <div class="guide-item"><em>This is a simulation only — no real tokens, wallets, or transactions are involved</em></div>
+   </div>
+  </div>
+ </div>
+</div>
+
+<!-- ═══════════════ ENGINE ═══════════════ -->
+<script>
+// ── CONSTANTS ──────────────────────────────────────────────────
+const USYC_APY   = 0.028;   // 2.8% net
+const FULL_CAP   = 0.10;
+const PROTO_FEE  = 0.10;
+const INS_FEE    = 0.05;
+const NET_RATE   = 0.85;
+const PHI_FLOOR  = 0.80;
+// Default: very low probability — fleet vehicles have strong collateral
+// 0.2% per eligible loan per month = ~2.4% per loan per year max
+// Hard cap: net loss in any 12-month window ≤ 5% of outstanding
+const DEFAULT_P  = 0.002;
+const REC_MIN    = 0.55;   // 55% vehicle auction recovery floor
+const REC_MAX    = 0.80;   // 80% ceiling — fleet buses retain value well
+const MIN_LOAN   = 50000;  // $50k minimum loan (smallest fleet vehicle)
+const MAX_LOAN   = 150000; // $150k maximum loan (large coach)
+const MIN_LOAN_AGE = 10;   // loans must be 10+ months old to be eligible for default
+const DEF_GAP_MO   = 20;   // minimum 20 months between defaults
+const MAX_ACTIVE_LOANS = 4; // base — overridden by maxLoansForPool()
+
+// Fleet operator names — Nigerian and African gig/transport operators
+const OPERATORS = [
+  'GIG Mobility Lagos','ABC Transport Abuja','Libra Motors Accra',
+  'Bolaji Gig Express','PTDF Fleet Kano','Minna Luxury Liners',
+  'Eko Transport Collective','Chidi Okafor Haulage','Ibadan Inter-City',
+  'Enugu Metro Shuttle','Cross River Coach Ltd','Kano State Express',
+  'PH Port Logistics','Nile Valley Transit Cairo','Addis Metro Coaches',
+  'Nairobi FastLink','Dakar Atlantic Bus Co','Accra Rapid Transit',
+  'Dar es Salaam Shuttle','Kampala City Liners','Harare Intercity Fleet',
+  'Casablanca Coach Hub','Tunis Gulf Transit','Cape Town Connector',
+  'Jo\'burg Commuter Fleet','Bamako River Express','Ouaga Sahel Transit',
+];
+
+// Dynamic max loans: scales with pool size so larger pools deploy more capital
+function maxLoansForPool(s) {
+  const vp = vPool(s);
+  if(vp <  400000) return 3;
+  if(vp <  800000) return 5;
+  if(vp < 1500000) return 7;
+  if(vp < 3000000) return 9;
+  return 12;
+}
+
+// Dynamic loan range: scales MIN and MAX with pool so larger pools can reach ~80% deployment.
+// A fixed $50k–$150k range would require 53+ loans to fill an $8M pool — impossible at max 12.
+function dynamicLoanRange(s) {
+  const vp = vPool(s);
+  const scale = Math.max(1, vp / 200000); // 1× at $200k baseline, 5× at $1M, etc.
+  const rawMin = Math.round(MIN_LOAN * scale / 1000) * 1000;
+  const rawMax = Math.round(MAX_LOAN * scale / 1000) * 1000;
+  // Cap a single loan at 35% of pool so no single borrower dominates
+  const singleCap = Math.round(vp * 0.35 / 1000) * 1000;
+  return {
+    minL: Math.min(rawMin, singleCap),
+    maxL: Math.min(rawMax, singleCap),
+  };
+}
+
+// ── STATE ──────────────────────────────────────────────────────
+let S = null, iv = null, spd = 2200, playing = false;
+let tab = 'fyc', action = 'buy';
+let pausedForEdit = false, wasPlayingBeforeEdit = false;
+let snapshots = [];        // array of {stateJSON, posJSON, evSnapshot} for rewind
+let expandedLoanId = null; // which loan card is currently expanded
+
+// User positions per tranche
+let pos = { fyc: null, ffc: null };
+
+function mkState() {
+  return {
+    mo: 0,
+    vFyc: 100000, sFyc: 100000,
+    vFfc: 100000, sFfc: 100000,
+    loans: [], lc: 0,
+    insTok: 0,
+    p0Fyc: 1.0, p0Ffc: 1.0,
+    lastDefMo: -99,
+    lastOrigMo: -6,
+    defLossWindow: [],
+    usedOpIdx: new Set(),
+  };
+}
+
+// Deep clone state (handles Set serialisation)
+function cloneState(s) {
+  const j = JSON.parse(JSON.stringify({
+    ...s,
+    usedOpIdx: [...s.usedOpIdx],
+    loans: s.loans.map(l=>({...l})),
+    defLossWindow: s.defLossWindow.map(d=>({...d})),
+  }));
+  j.usedOpIdx = new Set(j.usedOpIdx);
+  return j;
+}
+
+function saveSnapshot(ev) {
+  snapshots.push({
+    state: cloneState(S),
+    pos:   JSON.parse(JSON.stringify(pos)),
+    mo:    S.mo,
+    evSummary: ev ? `${ev.mo}: ${ev.newLoan?'Loan':ev.defEv?'Default':'Yield'}` : 'init',
+  });
+}
+
+// ── HELPERS ────────────────────────────────────────────────────
+const vPool  = s => s.vFyc + s.vFfc;
+const out    = s => s.loans.filter(l=>l.s==='a').reduce((a,l)=>a+l.bal,0);
+const elb    = s => Math.max(vPool(s) - out(s), 0);
+const pFyc   = s => s.vFyc / s.sFyc;
+const pFfc   = s => s.vFfc / s.sFfc;
+const fycSh  = s => s.vFyc / vPool(s);
+const baseCap= s => { const vp=vPool(s); return vp>0?(elb(s)/vp)*USYC_APY:USYC_APY; };
+const deplR  = s => { const la=vPool(s)*.8; return la>0?Math.min(out(s)/la,1):0; };
+const effCap = s => { const bc=baseCap(s); return bc+(FULL_CAP-bc)*deplR(s); };
+const phi    = s => { const o=out(s); return o>0?s.vFfc/o:Infinity; };
+
+function optPrc(s, t) {
+  const days=15;
+  let acc=0;
+  s.loans.filter(l=>l.s==='a').forEach(l=>{
+    acc += l.bal*(l.apr/12)*NET_RATE*(days/30);
+  });
+  const ec=effCap(s), bc=baseCap(s);
+  const fyc_est = Math.min((ec-bc)*s.vFyc/12*(days/30), acc);
+  const ffc_est = acc - fyc_est;
+  return t==='fyc' ? (s.vFyc+fyc_est)/s.sFyc : (s.vFfc+ffc_est)/s.sFfc;
+}
+
+// ── LOAN ORIGINATION ───────────────────────────────────────────
+function tryOriginate(s) {
+  const vp=vPool(s), la=vp*.8, o=out(s);
+  const lmax = s.vFfc/PHI_FLOOR;
+  const maxNew = Math.min(la-o, lmax-o);
+
+  const { minL, maxL } = dynamicLoanRange(s);
+
+  // Must have at least minL capacity available
+  if(maxNew < minL) return null;
+
+  // Loan amount: random between minL and min(maxL, maxNew × 0.9)
+  // Keep a small buffer below maxNew so φ stays comfortably above floor
+  const ceiling = Math.min(maxL, maxNew * 0.90);
+  if(ceiling < minL) return null;
+
+  let amt = minL + Math.random() * (ceiling - minL);
+  amt = Math.round(amt / 1000) * 1000;  // round to nearest $1k
+  amt = Math.max(minL, Math.min(ceiling, amt));
+
+  // Final φ check with buffer
+  if(s.vFfc / (o + amt) < PHI_FLOOR + 0.05) {
+    amt = Math.floor((s.vFfc / (PHI_FLOOR + 0.05) - o) / 1000) * 1000;
+    if(amt < minL) return null;
+  }
+
+  const apr = 0.20 + Math.random() * 0.15;   // 20–35% APR
+  const term = Math.random() > 0.45 ? 36 : 24;
+  const r = apr / 12;
+  const pmt = amt * r / (1 - Math.pow(1 + r, -term));
+
+  // Pick a unique operator name
+  let opIdx = Math.floor(Math.random() * OPERATORS.length);
+  let tries = 0;
+  while(s.usedOpIdx.has(opIdx) && tries < OPERATORS.length) {
+    opIdx = (opIdx + 1) % OPERATORS.length;
+    tries++;
+  }
+  s.usedOpIdx.add(opIdx);
+  const operator = OPERATORS[opIdx];
+
+  return { id: ++s.lc, bal: amt, orig: amt, apr, term, pmt, paid: 0, s: 'a', rec: 0, operator };
+}
+
+// ── SIMULATE MONTH ─────────────────────────────────────────────
+function simMonth(s) {
+  // 1. USYC yield
+  const elbNow = elb(s), vp = vPool(s);
+  const usycGross = elbNow*USYC_APY/12/NET_RATE;
+  const usycNet   = usycGross*NET_RATE;
+  const usycFee   = usycGross*(PROTO_FEE+INS_FEE);
+  const fsh       = fycSh(s);
+  s.vFyc += usycNet*fsh;
+  s.vFfc += usycNet*(1-fsh);
+  // Fee minting (price-neutral: add to V_FYC, mint tokens)
+  const feeTok = usycFee/pFyc(s);
+  s.vFyc += usycFee;
+  s.sFyc += feeTok;
+  s.insTok += feeTok*(INS_FEE/(PROTO_FEE+INS_FEE));
+
+  // 2. Loan origination — scale with pool size
+  let newLoan = null;
+  const activeCount = s.loans.filter(l=>l.s==='a').length;
+  const monthsSinceOrig = s.mo - s.lastOrigMo;
+  const maxNow = maxLoansForPool(s);
+  // Deployment pressure: push hard to stay near 0.80 cover ratio
+  const dr = deplR(s);
+  const urgency = dr < 0.30 ? 0.90 : dr < 0.50 ? 0.75 : dr < 0.70 ? 0.55 : 0.35;
+  const canOriginate = monthsSinceOrig >= 1 && activeCount < maxNow;
+  const origProb = activeCount === 0 ? 0.90 : urgency;
+  const doOrig = s.mo === 0 || (canOriginate && Math.random() < origProb);
+
+  if(doOrig) {
+    newLoan = tryOriginate(s);
+    if(newLoan) {
+      s.loans.push(newLoan);
+      s.lastOrigMo = s.mo;
+    }
+  }
+
+  // 3. Repayments — collect totals first, then split ONCE
+  let tGross=0, tPrin=0;
+
+  // Pass 1: collect interest + principal, update loan balances
+  for(const l of s.loans.filter(l=>l.s==='a'&&l.paid<l.term)) {
+    const int  = l.bal * l.apr / 12;
+    const prin = Math.min(l.pmt - int, l.bal);
+    tGross += int;
+    tPrin  += prin;
+    l.bal   = Math.max(0, l.bal - prin);
+    l.paid++;
+    if(l.bal < 0.01 || l.paid >= l.term) {
+      l.s = 'repaid';
+      const opIdx = OPERATORS.indexOf(l.operator);
+      if(opIdx >= 0) s.usedOpIdx.delete(opIdx);
+    }
+  }
+
+  // Pass 2: split total net interest via sliding cap — applied ONCE to combined total
+  const bc = baseCap(s), ec = effCap(s);
+  const tNet = tGross * NET_RATE;                       // 85% of gross
+  const fycMoNeed = (ec - bc) * s.vFyc / 12;           // what FYC needs from loans this month
+  const tFyc = Math.min(fycMoNeed, tNet);               // FYC gets up to its cap
+  const tFfc = tNet - tFyc;                             // FFC gets everything above the cap
+
+  s.vFyc += tFyc;
+  s.vFfc += tFfc;
+
+  // Fee minting for loan interest (once for the whole month's gross)
+  const loanFee = tGross * (PROTO_FEE + INS_FEE);
+  const lfTok   = loanFee / pFyc(s);
+  s.vFyc  += loanFee;
+  s.sFyc  += lfTok;
+  s.insTok += lfTok * (INS_FEE / (PROTO_FEE + INS_FEE));
+
+  // 4. Defaults — extremely rare, with hard 12-month loss cap
+  let defEv = null;
+
+  // Purge default loss tracker entries older than 12 months
+  s.defLossWindow = s.defLossWindow.filter(d => s.mo - d.mo < 12);
+
+  // Cumulative net default losses in past 12 months
+  const recentNetLoss = s.defLossWindow.reduce((a,d)=>a+d.netLoss,0);
+  const currentOut = out(s);
+
+  // Max additional loss allowed: 5% of outstanding, minus what's already occurred
+  const maxLossAllowed = currentOut * 0.05 - recentNetLoss;
+
+  const eligibleForDefault = s.loans.filter(l =>
+    l.s==='a' &&
+    l.paid >= MIN_LOAN_AGE &&          // mature loan only
+    s.mo - s.lastDefMo >= DEF_GAP_MO   // gap between defaults
+  );
+
+  for(const l of eligibleForDefault) {
+    if(Math.random() < DEFAULT_P) {
+      // Recovery: 55–80% of remaining balance (fleet vehicle auction)
+      const recovRate = REC_MIN + Math.random()*(REC_MAX-REC_MIN);
+      const grossLoss = l.bal * 1.02;   // balance + minimal penalty
+      const recovery  = grossLoss * recovRate;
+      const netLoss   = grossLoss - recovery;
+
+      // Hard check: would this push 12-month losses over 5% of outstanding?
+      if(netLoss > maxLossAllowed && maxLossAllowed < netLoss) {
+        // Reduce to the allowed amount — partial loss scenario
+        // In practice this means we skip if loss would be too large
+        if(maxLossAllowed < netLoss * 0.5) break; // skip entirely
+      }
+
+      const pBefore = pFyc(s);
+
+      // Layer 1: FFC absorbs net loss first
+      const ffcAbs = Math.min(netLoss, s.vFfc);
+      s.vFfc -= ffcAbs;
+      let rem = netLoss - ffcAbs;
+
+      // Layer 2: FYC absorbs remainder (only if FFC exhausted)
+      if(rem > 0) {
+        s.vFyc = Math.max(0, s.vFyc - rem);
+        // Insurance burns to restore FYC price toward pre-loss level
+        const targSupply = s.vFyc / pBefore;
+        const burnNeeded = Math.max(0, s.sFyc - targSupply);
+        const canBurn = Math.min(s.insTok, burnNeeded);
+        s.insTok -= canBurn;
+        s.sFyc   -= canBurn;
+      }
+
+      // netLoss = grossLoss − recovery, so pool has already decreased by exactly netLoss.
+      // No recovery re-entry needed — adding it back would double-count and inflate FYC price.
+
+      l.s = 'defaulted'; l.rec = recovery;
+      s.lastDefMo = s.mo;
+      s.defLossWindow.push({ mo: s.mo, netLoss });
+
+      defEv = { loanId:l.id, orig:l.orig, gross:grossLoss, rec:recovery, net:netLoss, ffcAbs, fyc_abs:rem, recovRate, operator:l.operator };
+      break; // max one default per month
+    }
+  }
+
+  s.mo++;
+
+  return {
+    mo:s.mo, newLoan, defEv,
+    usycNet, usycFee, tGross, tFyc, tFfc,
+    pFyc:pFyc(s), pFfc:pFfc(s),
+    phi:phi(s), deplR:deplR(s), effCap:effCap(s), baseCap:baseCap(s),
+    out:out(s), vPool:vPool(s),
+  };
+}
+
+// ── UI UPDATE ──────────────────────────────────────────────────
+// Formatting: 2dp everywhere except token prices (4dp)
+const fmt  = (n,d=2)=>n.toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d});
+const fU   = n=>'$'+fmt(n,2);
+const fP4  = n=>'$'+n.toFixed(4);   // 4dp for token prices
+const fP   = n=>'$'+n.toFixed(4);
+const fPct = n=>fmt(n*100,2)+'%';
+
+// Projected 12-month APY: annualise the last month's gain
+function calcApy12m(s, tranche) {
+  // Monthly yield earned = (V_tranche_now - V_tranche_start_of_month) / V_tranche_start
+  // We approximate from current effective cap + base cap
+  const bc = baseCap(s);
+  const ec = effCap(s);
+  if(tranche === 'fyc') {
+    // FYC earns: base_cap (USYC portion) + loan portion up to eff_cap
+    return ec;  // effective cap IS the projected APY at current deployment
+  } else {
+    // FFC earns: base_cap (USYC) + residual loan interest above FYC cap
+    const vp = vPool(s), o = out(s);
+    if(o <= 0) return bc; // no loans → both earn base cap only
+    // Estimate FFC monthly loan income annualised
+    const fycMoNeed = (ec-bc)*s.vFyc/12;
+    let totalNetInt = 0;
+    s.loans.filter(l=>l.s==='a').forEach(l=>{
+      totalNetInt += l.bal*l.apr/12*NET_RATE;
+    });
+    const ffcMo = Math.max(0, totalNetInt - fycMoNeed);
+    const ffcUsycMo = elb(s)*USYC_APY/12*NET_RATE*(1-fycSh(s));
+    const ffcApy = (ffcMo + ffcUsycMo) * 12 / s.vFfc;
+    return ffcApy;
+  }
+}
+
+function updateUI(s, ev) {
+  const vp=vPool(s), o=out(s), pfy=pFyc(s), pff=pFfc(s);
+  const fypct=(s.vFyc/vp*100).toFixed(2);
+  const ffpct=(s.vFfc/vp*100).toFixed(2);
+  const lpct=(o/vp*100).toFixed(2);
+
+  id('barFyc').style.width=fypct+'%'; id('barFyc').textContent=fypct+'%';
+  id('barFfc').style.width=ffpct+'%'; id('barFfc').textContent=ffpct+'%';
+  id('barLoan').style.width=lpct+'%';
+
+  id('svPool').textContent=fU(vp);
+  id('svLoans').textContent=fU(o);
+  const ph=phi(s);
+  id('svPhi').textContent=isFinite(ph)?fmt(ph,2):'—';
+  id('svPhi').className='sval'+(isFinite(ph)&&ph<PHI_FLOOR?' dn':' up');
+  id('svDeploy').textContent=fPct(deplR(s));
+  id('svBase').textContent=fPct(baseCap(s));
+  id('svEff').textContent=fPct(effCap(s));
+
+  // Token prices — 4dp
+  id('pcFyc').textContent=fP4(pfy);
+  id('pcFfc').textContent=fP4(pff);
+
+  const cfy=((pfy-s.p0Fyc)/s.p0Fyc*100), cff=((pff-s.p0Ffc)/s.p0Ffc*100);
+  id('chFyc').textContent=(cfy>=0?'+':'')+fmt(cfy,2)+'%';
+  id('chFyc').className='pc-chg '+(cfy>=0?'pos':'neg');
+  id('chFfc').textContent=(cff>=0?'+':'')+fmt(cff,2)+'%';
+  id('chFfc').className='pc-chg '+(cff>=0?'pos':'neg');
+
+  // 12-month projected APY
+  const apyF = calcApy12m(s,'fyc');
+  const apyFFC = calcApy12m(s,'ffc');
+  const apyFEl = id('apyFyc');
+  const apyFFEl = id('apyFfc');
+  apyFEl.innerHTML = `12M APY <span>${fPct(apyF)}</span>`;
+  apyFFEl.innerHTML = `12M APY <span class="${apyFFC>0.06?'':'lo'}">${fPct(apyFFC)}</span>`;
+
+  if(ev&&ev.mo>0) {
+    ['fyc-pc','ffc-pc'].forEach(c=>{
+      id(c).classList.add('pulse');
+      setTimeout(()=>id(c).classList.remove('pulse'),600);
+    });
+  }
+
+  // Loan list — ALL active loans, no limit, expandable with default simulation
+  const ll=id('loanList');
+  const activeLoans=s.loans.filter(l=>l.s==='a');
+  if(!activeLoans.length){
+    ll.innerHTML='<div style="font-size:10px;color:var(--text-3);text-align:center;padding:8px;">No active fleet operator loans — both tranches earning USYC yield</div>';
+  } else {
+    ll.innerHTML='';
+    activeLoans.forEach(l=>{
+      const pp = l.paid/l.term*100;
+      const totalPaid = (l.orig - l.bal);
+      const interestPaid = l.paid * (l.orig * l.apr/12) * 0.6; // rough estimate
+      const isExp = expandedLoanId === l.id;
+
+      // Recovery preview for expand panel
+      const recLo = fU(l.bal * 1.02 * REC_MIN);
+      const recHi = fU(l.bal * 1.02 * REC_MAX);
+      const netLossLo = fU(l.bal * 1.02 * (1-REC_MAX));
+      const netLossHi = fU(l.bal * 1.02 * (1-REC_MIN));
+
+      const el=document.createElement('div');
+      el.className='li'+(isExp?' expanded':'');
+      el.dataset.loanId = l.id;
+      el.innerHTML=`
+        <div style="display:flex;align-items:center;justify-content:space-between;width:100%">
+          <div>
+            <div class="li-operator">${l.operator||'Fleet Operator'}</div>
+            <div class="li-amt">${fU(l.orig)}</div>
+          </div>
+          <div style="text-align:center">
+            <div class="li-meta">${fmt(l.apr*100,2)}% APR · ${l.term}mo</div>
+            <div class="li-prog"><div class="li-pf" style="width:${pp.toFixed(2)}%"></div></div>
+          </div>
+          <div style="text-align:right">
+            <div class="li-meta">${fU(l.bal)} left</div>
+            <div class="li-st active">ACTIVE</div>
+          </div>
+        </div>
+        <div class="li-expand">
+          <div class="li-expand-row"><span class="li-expand-lbl">Month</span><span class="li-expand-val">${l.paid} of ${l.term}</span></div>
+          <div class="li-expand-row"><span class="li-expand-lbl">Outstanding balance</span><span class="li-expand-val r">${fU(l.bal)}</span></div>
+          <div class="li-expand-row"><span class="li-expand-lbl">Principal repaid</span><span class="li-expand-val g">${fU(l.orig - l.bal)}</span></div>
+          <div class="li-expand-row"><span class="li-expand-lbl">Recovery estimate</span><span class="li-expand-val p">${recLo} – ${recHi}</span></div>
+          <div class="li-expand-row"><span class="li-expand-lbl">Net loss (if default)</span><span class="li-expand-val r">${netLossLo} – ${netLossHi}</span></div>
+          <button class="btn-def" onclick="showDefConfirm(${l.id},event)">⚠️ Simulate Default on This Loan</button>
+          <div class="def-confirm" id="def-confirm-${l.id}">
+            <p>This will run the default waterfall on <strong>${l.operator}</strong> using a random recovery rate (${fmt(REC_MIN*100,0)}–${fmt(REC_MAX*100,0)}%). FFC absorbs first, insurance burns to restore FYC price if needed. The simulation will pause.</p>
+            <div class="def-confirm-btns">
+              <button class="def-yes" onclick="simulateLoanDefault(${l.id},event)">Execute Default</button>
+              <button class="def-no" onclick="hideDefConfirm(${l.id},event)">Cancel</button>
+            </div>
+          </div>
+        </div>`;
+      el.addEventListener('click', e => {
+        if(e.target.closest('.btn-def,.def-confirm-btns')) return;
+        toggleLoanExpand(l.id);
+      });
+      ll.appendChild(el);
+    });
+  }
+
+  // Bus progress: position loops every 36 months
+  const moIn36 = ((s.mo - 1) % 36) / 36;
+  const busW = id('busTrack').offsetWidth - 22;
+  const busLeft = Math.max(0, moIn36 * busW);
+  id('busRoadFill').style.width = (moIn36*100)+'%';
+  id('busIcon').style.left = busLeft+'px';
+  id('pLbl').textContent = 'Month '+s.mo;
+
+  // Default flash
+  if(ev&&ev.defEv) {
+    id('ffc-pc').classList.add('flash-r');
+    setTimeout(()=>id('ffc-pc').classList.remove('flash-r'),800);
+    if(ev.defEv.fyc_abs>0){
+      setTimeout(()=>{id('fyc-pc').classList.add('flash-r');setTimeout(()=>id('fyc-pc').classList.remove('flash-r'),800);},400);
+    }
+    setTimeout(()=>{id('ffc-pc').classList.add('glow-p');setTimeout(()=>id('ffc-pc').classList.remove('glow-p'),900);},900);
+  }
+
+  // Position
+  updatePositionCard(s);
+  updatePreview();
+}
+
+function updatePositionCard(s) {
+  const p = pos[tab];
+  if(!p||p.tokens<=0){ id('posCard').classList.remove('show'); return; }
+  const cp = tab==='fyc'?pFyc(s):pFfc(s);
+  const curr=p.tokens*cp, gain=(curr-p.invested)/p.invested*100;
+  id('posCard').classList.add('show');
+  id('posLbl').textContent='YOUR '+tab.toUpperCase()+' POSITION';
+  id('posGain').textContent=(gain>=0?'+':'')+gain.toFixed(2)+'%';
+  id('posGain').className='pos-gain'+(gain<0?' neg':'');
+  id('posToks').textContent=fmt(p.tokens,4)+' '+tab.toUpperCase();
+  id('posEntry').textContent=fP(p.avgEntry);
+  id('posCurr').textContent=fU(curr);
+  id('posInvest').textContent=fU(p.invested);
+}
+
+// ── TIMELINE ──────────────────────────────────────────────────
+function addEvent(ev, s) {
+  const tl=id('tl');
+  const card=document.createElement('div');
+  const hasDefault=!!ev.defEv, hasLoan=!!ev.newLoan;
+  const typeC = hasDefault?'td':hasLoan?'tl':'tr';
+  const ttl   = hasDefault?`⚠️ Month ${ev.mo} — DEFAULT + RECOVERY`
+              : hasLoan?`🏦 Month ${ev.mo} — Loan Originated`
+              : `📈 Month ${ev.mo} — Yield`;
+
+  const snapIdx = snapshots.length - 1; // index of snapshot taken after this step
+
+  let body='';
+  if(hasLoan) body+=`
+    <div class="er"><span class="erl">Operator</span><span class="erv fyc">${ev.newLoan.operator}</span></div>
+    <div class="er"><span class="erl">Vehicle loan</span><span class="erv">${fU(ev.newLoan.orig)}</span></div>
+    <div class="er"><span class="erl">APR / term</span><span class="erv">${fmt(ev.newLoan.apr*100,2)}% / ${ev.newLoan.term}mo</span></div>
+    <div class="er"><span class="erl">φ after</span><span class="erv ${ev.phi>=PHI_FLOOR?'g':'r'}">${isFinite(ev.phi)?fmt(ev.phi,2):'—'}</span></div>`;
+
+  if(hasDefault) body+=`
+    <div class="er"><span class="erl">Operator</span><span class="erv r">${ev.defEv.operator||'Fleet Operator'}</span></div>
+    <div class="er"><span class="erl">Loan outstanding</span><span class="erv r">${fU(ev.defEv.orig)}</span></div>
+    <div class="er"><span class="erl">Gross loss</span><span class="erv r">${fU(ev.defEv.gross)}</span></div>
+    <div class="er"><span class="erl">🚗 Vehicle recovery</span><span class="erv p">${fU(ev.defEv.rec)} (${fmt(ev.defEv.recovRate*100,0)}%)</span></div>
+    <div class="er"><span class="erl">Net loss to pool</span><span class="erv r">${fU(ev.defEv.net)}</span></div>
+    <div class="er"><span class="erl">FFC absorbed</span><span class="erv ffc">${fU(ev.defEv.ffcAbs)}</span></div>
+    ${ev.defEv.fyc_abs>0?`<div class="er"><span class="erl">FYC write-down</span><span class="erv r">${fU(ev.defEv.fyc_abs)}</span></div><div class="er"><span class="erl">Insurance burn</span><span class="erv p">price restored</span></div>`:''}`;
+
+  if(ev.usycNet>0||ev.tGross>0) body+=`
+    <div class="er"><span class="erl">USYC yield net</span><span class="erv">${fU(ev.usycNet)}</span></div>
+    ${ev.tGross>0?`<div class="er"><span class="erl">Loan interest net</span><span class="erv">${fU(ev.tFyc+ev.tFfc)}</span></div>
+    <div class="er"><span class="erl">→ FYC</span><span class="erv fyc">${fU(ev.tFyc)}</span></div>
+    <div class="er"><span class="erl">→ FFC</span><span class="erv ffc">${fU(ev.tFfc)}</span></div>`:''}
+    <div class="er"><span class="erl">Deploy ratio</span><span class="erv">${fPct(ev.deplR)}</span></div>
+    <div class="er"><span class="erl">Eff. cap</span><span class="erv">${fPct(ev.effCap)}</span></div>`;
+
+  // position row
+  ['fyc','ffc'].forEach(t=>{
+    const p=pos[t]; if(!p||p.tokens<=0) return;
+    const cp=t==='fyc'?ev.pFyc:ev.pFfc;
+    const v=p.tokens*cp, g=(v-p.invested)/p.invested*100;
+    body+=`<div class="er"><span class="erl">Your ${t.toUpperCase()}</span><span class="erv ${g>=0?'g':'r'}">${fU(v)} (${g>=0?'+':''}${g.toFixed(2)}%)</span></div>`;
+  });
+
+  body+=`<div class="er"><span class="erl">FYC</span><span class="erv fyc">${fP4(ev.pFyc)}</span></div>
+    <div class="er"><span class="erl">FFC</span><span class="erv ffc">${fP4(ev.pFfc)}</span></div>`;
+
+  card.className=`te ${typeC}`;
+  card.innerHTML=`<div class="te-mo">MONTH ${ev.mo}</div><div class="te-ttl">${ttl}</div><div class="te-rows">${body}</div>`;
+  card.setAttribute('data-si', snapIdx);   // used by rewindTo for DOM cleanup
+  card.addEventListener('click', () => rewindTo(snapIdx));
+  tl.prepend(card);
+}
+
+function addManualEvent(typeC, ttl, rows) {
+  const tl=id('tl'), card=document.createElement('div');
+  card.className=`te ${typeC}`;
+  card.innerHTML=`<div class="te-mo">MONTH ${S.mo}</div><div class="te-ttl">${ttl}</div>
+    <div class="te-rows">${rows.map(r=>`<div class="er"><span class="erl">${r[0]}</span><span class="erv ${r[2]||''}">${r[1]}</span></div>`).join('')}</div>`;
+  tl.prepend(card);
+}
+
+// ── POSITION ACTIONS ──────────────────────────────────────────
+function doBuy() {
+  const amt=parseFloat(id('amtIn').value)||0;
+  if(amt<=0) return;
+  const t=tab, op=optPrc(S,t), tok=amt/op;
+  if(t==='fyc'){ S.vFyc+=amt; S.sFyc+=tok; }
+  else         { S.vFfc+=amt; S.sFfc+=tok; }
+
+  const isFirst = !pos[t] || pos[t].tokens <= 0;
+  if(!pos[t]) pos[t]={tokens:0,invested:0,avgEntry:op};
+  const p=pos[t];
+  p.avgEntry=(p.tokens*p.avgEntry+tok*op)/(p.tokens+tok);
+  p.tokens+=tok; p.invested+=amt;
+
+  // Clear any rewind highlight since user is now acting
+  document.querySelectorAll('.te.rewound').forEach(c=>c.classList.remove('rewound'));
+
+  addManualEvent('tmint','💼 '+(isFirst?'Position Opened':'Position Topped Up')+` — ${t.toUpperCase()}`,[
+    ['Deposited',fU(amt),'g'],
+    ['Entry price',fP(op),''],
+    ['Tokens received',fmt(tok,4)+' '+t.toUpperCase(),t],
+    ['Total held',fmt(pos[t].tokens,4)+' '+t.toUpperCase(),t],
+  ]);
+  updateUI(S,null);
+  id('amtIn').value='';
+  updatePreview();
+  resumeAfterEdit();
+}
+
+function doRedeem() {
+  const t=tab, p=pos[t];
+  if(!p||p.tokens<=0){alert('No '+t.toUpperCase()+' position to redeem.');return;}
+  const pct=parseFloat(id('redeemRange').value)/100;
+  const tokRed=p.tokens*pct;
+  const cp=t==='fyc'?pFyc(S):pFfc(S);
+  const usd=tokRed*cp;
+
+  if(t==='fyc'){ S.vFyc=Math.max(0,S.vFyc-usd); S.sFyc=Math.max(0,S.sFyc-tokRed); }
+  else         { S.vFfc=Math.max(0,S.vFfc-usd); S.sFfc=Math.max(0,S.sFfc-tokRed); }
+
+  const gain=(usd-p.invested*pct)/( p.invested*pct)*100;
+  p.tokens-=tokRed; p.invested*=(1-pct);
+  if(p.tokens<0.001){ pos[t]=null; id('posCard').classList.remove('show'); }
+
+  addManualEvent('tred','💸 Redemption — '+t.toUpperCase(),[
+    ['Tokens redeemed',fmt(tokRed,4)+' '+t.toUpperCase(),t],
+    ['Price used',fP(cp),''],
+    ['USDC returned',fU(usd),'g'],
+    ['Gain/Loss on portion',(gain>=0?'+':'')+gain.toFixed(2)+'%',gain>=0?'g':'r'],
+  ]);
+  updateUI(S,null);
+  updateRedeemPreview();
+  resumeAfterEdit();
+}
+
+// ── PREVIEW ───────────────────────────────────────────────────
+function updatePreview() {
+  if(!S) return;
+  const t=tab, amt=parseFloat(id('amtIn').value)||0;
+  const op=optPrc(S,t), cp=t==='fyc'?pFyc(S):pFfc(S);
+  const tok=amt/op;
+  id('prevOpt').textContent=fP(op);
+  id('prevCons').textContent=fP(cp);
+  id('prevTokens').textContent=fmt(tok,4);
+  id('prevUnit').textContent=t.toUpperCase()+' tokens you would receive';
+  id('prevTokens').className='tbig'+(t==='ffc'?' ffc':'');
+  id('prevOpt').className='pval hi'+(t==='ffc'?' ffc':'');
+}
+
+function updateRedeemPreview() {
+  if(!S) return;
+  const t=tab, p=pos[t];
+  const pct=parseFloat(id('redeemRange').value)/100;
+  id('redeemPct').textContent=Math.round(pct*100)+'%';
+  if(!p||p.tokens<=0){
+    id('rvPrice').textContent='—'; id('rvTokens').textContent='—'; id('rvUsdc').textContent='—'; return;
+  }
+  const cp=t==='fyc'?pFyc(S):pFfc(S);
+  const tok=p.tokens*pct;
+  id('rvPrice').textContent=fP(cp);
+  id('rvTokens').textContent=fmt(tok,4)+' '+t.toUpperCase();
+  id('rvUsdc').textContent=fU(tok*cp);
+  id('rvUsdc').className='pval hi'+(t==='ffc'?' ffc':'');
+}
+
+// ── TAB & ACTION SWITCH ───────────────────────────────────────
+function switchTab(t) {
+  tab=t;
+  id('tab-fyc').className='ttab'+(t==='fyc'?' active fyc':'');
+  id('tab-ffc').className='ttab'+(t==='ffc'?' active ffc':'');
+  id('amtIn').className='inp'+(t==='ffc'?' ffc':'');
+  id('btnBuy').className='btn-act buy'+(t==='ffc'?' ffc':'');
+  id('btnBuy').textContent='Buy '+t.toUpperCase();
+  id('riskCard').className='risk-card'+(t==='ffc'?' show':'');
+  updatePreview(); updateRedeemPreview(); updatePositionCard(S);
+}
+function switchAction(a) {
+  action=a;
+  id('atab-buy').className='atab'+(a==='buy'?' active':'');
+  id('atab-sell').className='atab'+(a==='sell'?' active':'');
+  id('panel-buy').style.display=a==='buy'?'':'none';
+  id('panel-sell').style.display=a==='sell'?'':'none';
+  if(a==='sell') updateRedeemPreview();
+}
+
+// ── EDIT PAUSE ────────────────────────────────────────────────
+function pauseForEdit() {
+  wasPlayingBeforeEdit=playing;
+  if(playing){ clearInterval(iv); playing=false; }
+  id('pausedBadge').classList.add('show');
+}
+function resumeAfterEdit() {
+  id('pausedBadge').classList.remove('show');
+  if(wasPlayingBeforeEdit&&!playing) startSim();
+}
+
+// ── PLAYBACK ──────────────────────────────────────────────────
+function step() {
+  const ev = simMonth(S);
+  saveSnapshot(ev);        // save FIRST so snapshots.length-1 is correct in addEvent
+  updateUI(S, ev);
+  addEvent(ev, S);
+}
+
+// Rewind to a saved snapshot
+function rewindTo(snapIdx) {
+  if(snapIdx < 0 || snapIdx >= snapshots.length) return;
+  stopSim();
+  const snap = snapshots[snapIdx];
+  S   = cloneState(snap.state);
+  pos = JSON.parse(JSON.stringify(snap.pos));
+  expandedLoanId = null;
+  // Truncate future snapshots
+  snapshots = snapshots.slice(0, snapIdx + 1);
+
+  // Remove DOM timeline cards from after this snapshot
+  // Cards are prepended (newest first), so cards with snapIdx > target are at the top
+  const tl = id('tl');
+  Array.from(tl.children).forEach(card => {
+    const si = card.getAttribute('data-si');
+    // Remove any card with a future snap index, or manual events that came after
+    if(si !== null && parseInt(si) > snapIdx) tl.removeChild(card);
+  });
+
+  // Highlight this card, remove highlight from others
+  document.querySelectorAll('.te').forEach(c => {
+    c.classList.remove('rewound');
+    if(c.getAttribute('data-si') === String(snapIdx)) c.classList.add('rewound');
+  });
+
+  updateUI(S, null);
+  id('pausedBadge').classList.remove('show');
+}
+
+// ── LOAN EXPAND & DEFAULT SIMULATION ─────────────────────────
+function toggleLoanExpand(loanId) {
+  expandedLoanId = expandedLoanId === loanId ? null : loanId;
+  updateUI(S, null);
+}
+
+function showDefConfirm(loanId, e) {
+  e.stopPropagation();
+  document.querySelectorAll('.def-confirm').forEach(el => el.classList.remove('show'));
+  const el = document.getElementById('def-confirm-'+loanId);
+  if(el) el.classList.add('show');
+}
+
+function hideDefConfirm(loanId, e) {
+  e.stopPropagation();
+  const el = document.getElementById('def-confirm-'+loanId);
+  if(el) el.classList.remove('show');
+}
+
+function simulateLoanDefault(loanId, e) {
+  e.stopPropagation();
+  stopSim();
+  const loan = S.loans.find(l => l.id === loanId && l.s === 'a');
+  if(!loan) return;
+
+  const recovRate = REC_MIN + Math.random()*(REC_MAX - REC_MIN);
+  const grossLoss = loan.bal * 1.02;
+  const recovery  = grossLoss * recovRate;
+  const netLoss   = grossLoss - recovery;
+  const pBefore   = pFyc(S);
+
+  const ffcAbs = Math.min(netLoss, S.vFfc);
+  S.vFfc -= ffcAbs;
+  let rem = netLoss - ffcAbs;
+
+  if(rem > 0) {
+    S.vFyc = Math.max(0, S.vFyc - rem);
+    const targSupply = S.vFyc / pBefore;
+    const burnNeeded = Math.max(0, S.sFyc - targSupply);
+    const canBurn    = Math.min(S.insTok, burnNeeded);
+    S.insTok -= canBurn;
+    S.sFyc   -= canBurn;
+  }
+
+  // netLoss = grossLoss − recovery; pool already decreased by netLoss only. No re-entry needed.
+
+  loan.s = 'defaulted'; loan.rec = recovery;
+  S.lastDefMo = S.mo;
+  S.defLossWindow.push({ mo: S.mo, netLoss });
+
+  expandedLoanId = null;
+  // Clear rewind highlight — user is acting from current state
+  document.querySelectorAll('.te.rewound').forEach(c=>c.classList.remove('rewound'));
+
+  const defEv = { loanId:loan.id, orig:loan.orig, gross:grossLoss, rec:recovery,
+    net:netLoss, ffcAbs, fyc_abs:rem, recovRate, operator:loan.operator };
+
+  addManualEvent('td', `⚠️ Month ${S.mo} — SIMULATED DEFAULT`, [
+    ['Operator', loan.operator, 'r'],
+    ['Outstanding', fU(loan.orig), 'r'],
+    ['Recovery ('+fmt(recovRate*100,0)+'%)', fU(recovery), 'p'],
+    ['Net loss to pool', fU(netLoss), 'r'],
+    ['FFC absorbed', fU(ffcAbs), 'ffc'],
+    ...(rem>0?[['FYC write-down', fU(rem), 'r'],['Insurance burn','price restored','p']]:[]),
+    ['New FYC price', fP4(pFyc(S)), 'fyc'],
+    ['New FFC price', fP4(pFfc(S)), 'ffc'],
+  ]);
+
+  saveSnapshot(defEv);
+  updateUI(S, { mo: S.mo, defEv });
+}
+
+// ── TIPS ──────────────────────────────────────────────────────
+function toggleTip(tipId) {
+  const body = id(tipId);
+  const tog  = id(tipId+'-tog');
+  if(!body) return;
+  const open = body.classList.toggle('open');
+  if(tog) tog.textContent = open ? '▾ hide' : '▸ show';
+}
+function togglePlay(){
+  if(playing) stopSim();
+  else startSim();
+}
+function startSim() {
+  playing=true;
+  id('btnPP').textContent='⏸ Pause';
+  id('btnPP').classList.add('prim');
+  iv=setInterval(step,spd);
+}
+function stopSim() {
+  playing=false; clearInterval(iv);
+  id('btnPP').textContent='▶ Play';
+  id('btnPP').classList.remove('prim');
+}
+function setSpd(ms,btn) {
+  spd=ms;
+  document.querySelectorAll('.spd-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  if(playing){ stopSim(); startSim(); }
+}
+function resetSim() {
+  stopSim(); pos={fyc:null,ffc:null};
+  snapshots=[]; expandedLoanId=null;
+  ['posCard'].forEach(i=>id(i).classList.remove('show'));
+  S=mkState();
+  id('tl').innerHTML='';
+  const c=document.createElement('div');
+  c.className='te tl';
+  c.innerHTML=`<div class="te-mo">MONTH 0</div><div class="te-ttl">🚀 Pool Initialised</div>
+    <div class="te-rows">
+      <div class="er"><span class="erl">V_FYC</span><span class="erv fyc">$100,000</span></div>
+      <div class="er"><span class="erl">V_FFC</span><span class="erv ffc">$100,000</span></div>
+      <div class="er"><span class="erl">V_Pool</span><span class="erv">$200,000</span></div>
+      <div class="er"><span class="erl">Prices</span><span class="erv">$1.000000</span></div>
+      <div class="er"><span class="erl">Vehicle loans</span><span class="erv g">$50k – $150k range</span></div>
+    </div>`;
+  id('tl').prepend(c);
+  updateUI(S,null);
+  // Reset bus position
+  id('busRoadFill').style.width='0%';
+  id('busIcon').style.left='0px';
+  id('pLbl').textContent='Month 0';
+}
+
+// ── GUIDE ─────────────────────────────────────────────────────
+function openGuide() {
+  id('guideOverlay').classList.add('open');
+}
+function closeGuide() {
+  id('guideOverlay').classList.remove('open');
+}
+id('guideOverlay').addEventListener('click', e => {
+  if(e.target === id('guideOverlay')) closeGuide();
+});
+
+// ── MODAL ─────────────────────────────────────────────────────
+function closeModal() {
+  stopSim();
+  try { window.parent.postMessage({ type: 'close' }, '*'); } catch(e) {}
+}
+document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeModal(); });
+
+// utils
+function id(x){ return document.getElementById(x); }
+
+// init
+resetSim();
+</script>
+</body>
+</html>

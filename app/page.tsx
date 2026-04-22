@@ -1,6 +1,7 @@
 import WaitlistForm from "@/components/WaitlistForm";
 import SignupCount from "@/components/SignupCount";
 import LiveClock from "@/components/LiveClock";
+import HowItWorksButton from "@/components/HowItWorksButton";
 
 export default function Home() {
   return (
@@ -50,6 +51,7 @@ export default function Home() {
             >
               Discord
             </a>
+            <HowItWorksButton />
           </nav>
 
           {/* Pill */}

@@ -157,10 +157,41 @@ body {
 }
 
 @media (max-width: 560px) {
-  .topbar-nav { display: none !important; }
+  /* Nav wraps to a second row so Docs / Discord / How It Works stay reachable on mobile */
+  header.topbar {
+    flex-wrap: wrap !important;
+    padding: 14px 20px 0 !important;
+    row-gap: 0 !important;
+  }
+  .topbar-nav {
+    display: flex !important;
+    order: 3;
+    width: 100%;
+    gap: 20px !important;
+    font-size: 12px !important;
+    padding: 10px 0 12px !important;
+    border-top: 1px solid var(--border) !important;
+    margin-top: 10px !important;
+  }
   .hero-left { padding: 36px 20px 32px !important; }
   .hero-right { padding: 24px 20px 40px !important; }
   .fleets-card { padding: 22px !important; }
+}
+
+/* ── How It Works modal ── */
+@keyframes howItWorksIn {
+  from { opacity: 0; transform: translateY(16px) scale(0.98); }
+  to   { opacity: 1; transform: none; }
+}
+/* Full-screen on small viewports — no padding, no rounded corners */
+@media (max-width: 640px) {
+  .hiw-backdrop { padding: 0 !important; align-items: stretch !important; }
+  .hiw-shell {
+    border-radius: 0 !important;
+    max-width: none !important;
+    height: 100dvh !important;
+    border: none !important;
+  }
 }
 
 @layer utilities {
