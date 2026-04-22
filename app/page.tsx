@@ -226,8 +226,8 @@ function TokenChip({ tok, label, sub }: { tok: "ffc" | "fyc" | "usyc"; label: st
           flexShrink: 0, overflow: "hidden",
         }}
       >
-        {tok === "ffc"  && <img src="/ffc.svg" alt="ffc logo" width={28} height={28} aria-hidden="true" />}
-        {tok === "fyc"  && <img src="/fyc.svg" alt="fyc logo" width={28} height={28} aria-hidden="true" />}
+        {tok === "ffc"  && <img src="/FFC.svg" alt="ffc logo" width={28} height={28} aria-hidden="true" />}
+        {tok === "fyc"  && <img src="/FYC.svg" alt="fyc logo" width={28} height={28} aria-hidden="true" />}
         {tok === "usyc" && <img src="/usyc.svg" alt="usyc logo" width={28} height={28} aria-hidden="true" />}
       </span>
       {label}
