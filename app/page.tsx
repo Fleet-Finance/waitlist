@@ -34,7 +34,7 @@ export default function Home() {
             style={{ gap: 28, fontSize: 13.5, color: "rgba(255,255,255,0.5)" }}
           >
             <a
-              href="https://docs.fleets.fi"
+              href="https://usefleetsgmailcom.mintlify.app/"
               target="_blank"
               rel="noopener noreferrer"
               className="hover:text-white transition-colors"
