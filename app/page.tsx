@@ -121,9 +121,8 @@ export default function Home() {
 
               {/* Token chips */}
               <div className="flex flex-wrap gap-2" style={{ marginBottom: 32 }}>
-                <TokenChip tok="ffc" label="FFC" sub="FiLo coin" />
                 <TokenChip tok="fyc" label="FYC" sub="Yield coin" />
-                <TokenChip tok="usyc" label="USYC" sub="Reserve" />
+                <TokenChip tok="ffc" label="FFC" sub="FiLo coin" />
               </div>
             </div>
 
@@ -207,7 +206,7 @@ function StatItem({ k, v, unit, trend, muted }: { k: string; v: string; unit: st
 
 
 
-function TokenChip({ tok, label, sub }: { tok: "ffc" | "fyc" | "usyc"; label: string; sub: string }) {
+function TokenChip({ tok, label, sub }: { tok: "ffc" | "fyc"; label: string; sub: string }) {
   return (
     <span
       className="inline-flex items-center gap-2"
@@ -228,7 +227,6 @@ function TokenChip({ tok, label, sub }: { tok: "ffc" | "fyc" | "usyc"; label: st
       >
         {tok === "ffc"  && <img src="/FFC.svg" alt="ffc logo" width={28} height={28} aria-hidden="true" />}
         {tok === "fyc"  && <img src="/FYC.svg" alt="fyc logo" width={28} height={28} aria-hidden="true" />}
-        {tok === "usyc" && <img src="/usyc.svg" alt="usyc logo" width={28} height={28} aria-hidden="true" />}
       </span>
       {label}
       <em style={{ color: "rgba(255,255,255,0.35)", fontWeight: 500, fontStyle: "italic", marginLeft: 2 }}>
